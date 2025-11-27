@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="sk.ikts.client.controller.GroupDetailController"
+            style="-fx-background-color: #f5f5f5;">
+    
+    <top>
+        <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-background-color: #2c3e50; -fx-padding: 15;">
+            <Label fx:id="groupNameLabel" text="Group Name" 
+                   style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="backButton" text="Back" onAction="#handleBack"
+                    style="-fx-background-color: #95a5a6; -fx-text-fill: white;"/>
+        </HBox>
+    </top>
+    
+    <center>
+        <TabPane fx:id="detailTabPane" tabClosingPolicy="UNAVAILABLE">
+            <tabs>
+                <!-- Tasks Tab -->
+                <Tab text="Tasks">
+                    <VBox spacing="10">
+                        <padding>
+                            <Insets top="10" right="10" bottom="10" left="10"/>
+                        </padding>
+                        <children>
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <Label text="Group Tasks" 
+                                       style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Button fx:id="createTaskButton" text="+ Create Task" 
+                                        onAction="#handleCreateTask"
+                                        style="-fx-background-color: #3498db; -fx-text-fill: white;"/>
+                            </HBox>
+                            
+                            <TableView fx:id="tasksTable" prefHeight="400">
+                                <columns>
+                                    <TableColumn fx:id="taskTitleColumn" text="Title" prefWidth="200"/>
+                                    <TableColumn fx:id="taskStatusColumn" text="Status" prefWidth="120"/>
+                                    <TableColumn fx:id="taskDeadlineColumn" text="Deadline" prefWidth="150"/>
+                                    <TableColumn fx:id="taskActionsColumn" text="Actions" prefWidth="200"/>
+                                </columns>
+                            </TableView>
+                        </children>
+                    </VBox>
+                </Tab>
+                
+                <!-- Resources Tab -->
+                <Tab text="Resources">
+                    <VBox spacing="10">
+                        <padding>
+                            <Insets top="10" right="10" bottom="10" left="10"/>
+                        </padding>
+                        <children>
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <Label text="Shared Resources" 
+                                       style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Button fx:id="uploadFileButton" text="Upload File" 
+                                        onAction="#handleUploadFile"
+                                        style="-fx-background-color: #27ae60; -fx-text-fill: white;"/>
+                                <Button fx:id="shareUrlButton" text="Share URL" 
+                                        onAction="#handleShareUrl"
+                                        style="-fx-background-color: #3498db; -fx-text-fill: white;"/>
+                            </HBox>
+                            
+                            <TableView fx:id="resourcesTable" prefHeight="400">
+                                <columns>
+                                    <TableColumn fx:id="resourceTitleColumn" text="Title" prefWidth="200"/>
+                                    <TableColumn fx:id="resourceTypeColumn" text="Type" prefWidth="100"/>
+                                    <TableColumn fx:id="resourceUploadedColumn" text="Uploaded" prefWidth="150"/>
+                                    <TableColumn fx:id="resourceActionsColumn" text="Actions" prefWidth="200"/>
+                                </columns>
+                            </TableView>
+                        </children>
+                    </VBox>
+                </Tab>
+                
+                <!-- Members Tab -->
+                <Tab text="Members">
+                    <VBox spacing="10">
+                        <padding>
+                            <Insets top="10" right="10" bottom="10" left="10"/>
+                        </padding>
+                        <children>
+                            <Label text="Group Members" 
+                                   style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                            
+                            <ListView fx:id="membersList" prefHeight="400"/>
+                        </children>
+                    </VBox>
+                </Tab>
+            </tabs>
+        </TabPane>
+    </center>
+</BorderPane>
+

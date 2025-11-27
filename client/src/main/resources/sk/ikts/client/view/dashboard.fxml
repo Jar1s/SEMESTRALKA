@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="sk.ikts.client.controller.DashboardController"
+            style="-fx-background-color: #f5f5f5;">
+    
+    <!-- Top: Status bar -->
+    <top>
+        <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-background-color: #2c3e50; -fx-padding: 10;">
+            <Label text="Collaborative Study Platform"
+                   style="-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="statusLabel" text="Loading..."
+                   style="-fx-text-fill: white;"/>
+            <Button fx:id="profileButton" text="Profile" onAction="#showProfileDialog"
+                    style="-fx-background-color: #95a5a6; -fx-text-fill: white;"/>
+            <Button fx:id="refreshButton" text="Refresh" onAction="#handleRefresh"
+                    style="-fx-background-color: #3498db; -fx-text-fill: white;"/>
+        </HBox>
+    </top>
+    
+    <!-- Center: TabPane with Groups, Tasks, Statistics -->
+    <center>
+        <TabPane fx:id="mainTabPane" tabClosingPolicy="UNAVAILABLE">
+            <tabs>
+                <!-- Groups Tab -->
+                <Tab text="Groups">
+                    <VBox spacing="10">
+                        <padding>
+                            <Insets top="10" right="10" bottom="10" left="10"/>
+                        </padding>
+                        <children>
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <Label text="My Study Groups" 
+                                       style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Button fx:id="createGroupButton" text="+ Create Group" 
+                                        onAction="#showCreateGroupDialog"
+                                        style="-fx-background-color: #27ae60; -fx-text-fill: white;"/>
+                            </HBox>
+                            
+                            <TableView fx:id="groupsTable" prefHeight="500">
+                                <columns>
+                                    <TableColumn fx:id="groupNameColumn" text="Name" prefWidth="200"/>
+                                    <TableColumn fx:id="groupDescriptionColumn" text="Description" prefWidth="300"/>
+                                    <TableColumn fx:id="groupCreatedColumn" text="Created" prefWidth="150"/>
+                                    <TableColumn fx:id="groupActionsColumn" text="Actions" prefWidth="200"/>
+                                </columns>
+                            </TableView>
+                        </children>
+                    </VBox>
+                </Tab>
+                
+                <!-- Tasks Tab -->
+                <Tab text="Tasks">
+                    <VBox spacing="10">
+                        <padding>
+                            <Insets top="10" right="10" bottom="10" left="10"/>
+                        </padding>
+                        <children>
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <Label text="All Tasks" 
+                                       style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <ComboBox fx:id="groupFilterComboBox" promptText="Filter by Group" 
+                                          prefWidth="200"/>
+                                <Button fx:id="createTaskButton" text="+ Create Task" 
+                                        onAction="#showCreateTaskDialog"
+                                        style="-fx-background-color: #3498db; -fx-text-fill: white;"/>
+                            </HBox>
+                            
+                            <TableView fx:id="tasksTable" prefHeight="500">
+                                <columns>
+                                    <TableColumn fx:id="taskTitleColumn" text="Title" prefWidth="200"/>
+                                    <TableColumn fx:id="taskGroupColumn" text="Group" prefWidth="150"/>
+                                    <TableColumn fx:id="taskStatusColumn" text="Status" prefWidth="120"/>
+                                    <TableColumn fx:id="taskDeadlineColumn" text="Deadline" prefWidth="150"/>
+                                    <TableColumn fx:id="taskActionsColumn" text="Actions" prefWidth="200"/>
+                                </columns>
+                            </TableView>
+                        </children>
+                    </VBox>
+                </Tab>
+                
+                <!-- Statistics Tab -->
+                <Tab text="Statistics">
+                    <ScrollPane fitToWidth="true">
+                        <VBox spacing="20" alignment="CENTER">
+                            <padding>
+                                <Insets top="20" right="20" bottom="20" left="20"/>
+                            </padding>
+                            <children>
+                                <Label text="Dashboard Statistics" 
+                                       style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+                                
+                                <GridPane hgap="20" vgap="20">
+                                    <columnConstraints>
+                                        <ColumnConstraints prefWidth="250"/>
+                                        <ColumnConstraints prefWidth="250"/>
+                                    </columnConstraints>
+                                    
+                                    <children>
+                                        <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 5;">
+                                            <Label text="Total Groups" style="-fx-font-size: 14px; -fx-text-fill: #7f8c8d;"/>
+                                            <Label fx:id="totalGroupsLabel" text="0" 
+                                                   style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #3498db;"/>
+                                        </VBox>
+                                        
+                                        <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 5;">
+                                            <Label text="Total Tasks" style="-fx-font-size: 14px; -fx-text-fill: #7f8c8d;"/>
+                                            <Label fx:id="totalTasksLabel" text="0" 
+                                                   style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #27ae60;"/>
+                                        </VBox>
+                                        
+                                        <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 5;">
+                                            <Label text="Open Tasks" style="-fx-font-size: 14px; -fx-text-fill: #7f8c8d;"/>
+                                            <Label fx:id="openTasksLabel" text="0" 
+                                                   style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #f39c12;"/>
+                                        </VBox>
+                                        
+                                        <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 5;">
+                                            <Label text="Completed Tasks" style="-fx-font-size: 14px; -fx-text-fill: #7f8c8d;"/>
+                                            <Label fx:id="completedTasksLabel" text="0" 
+                                                   style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #27ae60;"/>
+                                        </VBox>
+                                    </children>
+                                </GridPane>
+                                
+                                <Label text="Task Completion Ratio" 
+                                       style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+                                <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 5; -fx-pref-width: 500;">
+                                    <Label fx:id="completionRatioLabel" text="0%" 
+                                           style="-fx-font-size: 48px; -fx-font-weight: bold; -fx-text-fill: #27ae60; -fx-alignment: center;"/>
+                                    <ProgressBar fx:id="completionProgressBar" prefWidth="450" progress="0"/>
+                                    <Label text="Tasks completed vs total tasks" 
+                                           style="-fx-font-size: 12px; -fx-text-fill: #7f8c8d;"/>
+                                </VBox>
+                            </children>
+                        </VBox>
+                    </ScrollPane>
+                </Tab>
+            </tabs>
+        </TabPane>
+    </center>
+</BorderPane>
+

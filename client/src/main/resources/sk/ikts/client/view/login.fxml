@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<VBox alignment="CENTER" spacing="20.0" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="sk.ikts.client.controller.LoginController">
+   <children>
+      <Label text="Collaborative Study Platform" textFill="#2c3e50">
+         <font>
+            <Font name="System Bold" size="24.0" />
+         </font>
+      </Label>
+      
+      <TabPane fx:id="tabPane" prefWidth="400.0" tabClosingPolicy="UNAVAILABLE">
+        <tabs>
+          <Tab fx:id="loginTab" text="Login">
+            <content>
+              <VBox spacing="15.0" style="-fx-padding: 20;">
+                <children>
+                  <Label text="Email:" />
+                  <TextField fx:id="loginEmail" promptText="Enter your email" />
+                  
+                  <Label text="Password:" />
+                  <PasswordField fx:id="loginPassword" promptText="Enter your password" />
+                  
+                  <Label fx:id="loginErrorLabel" textFill="RED" visible="false" />
+                  
+                  <Button fx:id="loginButton" mnemonicParsing="false" text="Login" style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold;">
+                     <VBox.margin>
+                        <Insets top="10.0" />
+                     </VBox.margin>
+                  </Button>
+                </children>
+              </VBox>
+            </content>
+          </Tab>
+          
+          <Tab fx:id="registerTab" text="Register">
+            <content>
+              <VBox spacing="15.0" style="-fx-padding: 20;">
+                <children>
+                  <Label text="Name:" />
+                  <TextField fx:id="registerName" promptText="Enter your name" />
+                  
+                  <Label text="Email:" />
+                  <TextField fx:id="registerEmail" promptText="Enter your email" />
+                  
+                  <Label text="Password:" />
+                  <PasswordField fx:id="registerPassword" promptText="Enter your password (min 6 characters)" />
+                  
+                  <Label fx:id="registerErrorLabel" textFill="RED" visible="false" />
+                  
+                  <Button fx:id="registerButton" mnemonicParsing="false" text="Register" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;">
+                     <VBox.margin>
+                        <Insets top="10.0" />
+                     </VBox.margin>
+                  </Button>
+                </children>
+              </VBox>
+            </content>
+          </Tab>
+        </tabs>
+      </TabPane>
+   </children>
+   <padding>
+      <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+   </padding>
+</VBox>
+
