@@ -18,6 +18,20 @@
     <description>JavaFX desktop aplikácia</description>
 
     <dependencies>
+        <!-- JavaFX Base (required) -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-base</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+
+        <!-- JavaFX Graphics (required for rendering) -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-graphics</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+
         <!-- JavaFX Controls -->
         <dependency>
             <groupId>org.openjfx</groupId>
@@ -66,11 +80,17 @@
                     <options>
                         <option>--add-opens</option>
                         <option>javafx.base/com.sun.javafx.runtime=ALL-UNNAMED</option>
+                        <option>--add-opens</option>
+                        <option>javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED</option>
+                        <option>--add-opens</option>
+                        <option>javafx.graphics/com.sun.javafx.stage=ALL-UNNAMED</option>
+                        <option>--enable-native-access</option>
+                        <option>javafx.graphics</option>
                     </options>
                 </configuration>
             </plugin>
             
-            <!-- Maven Exec Plugin as alternative -->
+            <!-- Maven Exec Plugin as alternative (use javafx:run instead) -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>

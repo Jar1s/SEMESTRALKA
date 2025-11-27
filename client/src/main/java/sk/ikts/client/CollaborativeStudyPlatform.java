@@ -5,6 +5,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import sk.ikts.client.util.SceneManager;
 
 /**
  * Entry point for the Collaborative Study Platform desktop client.
@@ -15,6 +16,9 @@ public class CollaborativeStudyPlatform extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        // Set primary stage in SceneManager for scene transitions
+        SceneManager.setPrimaryStage(primaryStage);
+        
         FXMLLoader loader = new FXMLLoader(
                 CollaborativeStudyPlatform.class.getResource("/sk/ikts/client/view/login.fxml"));
         Parent root = loader.load();

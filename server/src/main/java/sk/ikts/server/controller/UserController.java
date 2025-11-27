@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import sk.ikts.server.dto.LoginRequest;
 import sk.ikts.server.dto.LoginResponse;
@@ -11,6 +12,7 @@ import sk.ikts.server.dto.RegisterRequest;
 import sk.ikts.server.dto.UserDTO;
 import sk.ikts.server.service.UserService;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -55,14 +57,44 @@ public class UserController {
      * POST /api/users/login
      */
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        LoginResponse response = userService.login(request);
-        
-        if (response.isSuccess()) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
+            // Manual validation
+            if (request == null || request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Email is required");
+            }
+            if (request.getPassword() == null || request.getPassword().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Password is required");
+            }
+            
+            LoginResponse response = userService.login(request);
+            
+            if (response.isSuccess()) {
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+        } catch (Exception e) {
+            // Log the error for debugging
+            System.err.println("Login error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Login failed: " + e.getMessage());
         }
+    }
+    
+    /**
+     * Handle validation errors
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error -> {
+            errors.put(error.getField(), error.getDefaultMessage());
+        });
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
 
     /**

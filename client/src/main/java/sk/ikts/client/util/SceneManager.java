@@ -26,6 +26,11 @@ public class SceneManager {
      * Show login/register scene
      */
     public static void showLoginScene() {
+        if (primaryStage == null) {
+            System.err.println("Error: Primary stage not set. Call SceneManager.setPrimaryStage() first.");
+            return;
+        }
+        
         try {
             FXMLLoader loader = new FXMLLoader(SceneManager.class.getResource(BASE_PATH + "login.fxml"));
             Parent root = loader.load();
@@ -41,6 +46,11 @@ public class SceneManager {
      * Show dashboard scene
      */
     public static void showDashboardScene(Long userId) {
+        if (primaryStage == null) {
+            System.err.println("Error: Primary stage not set. Call SceneManager.setPrimaryStage() first.");
+            return;
+        }
+        
         try {
             FXMLLoader loader = new FXMLLoader(SceneManager.class.getResource(BASE_PATH + "dashboard.fxml"));
             Parent root = loader.load();
