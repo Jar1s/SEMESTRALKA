@@ -13,11 +13,18 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
+import javafx.scene.chart.PieChart;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 import sk.ikts.client.model.Group;
 import sk.ikts.client.model.Notification;
 import sk.ikts.client.model.Task;
+import sk.ikts.client.model.User;
 import sk.ikts.client.controller.GroupDetailController;
 import sk.ikts.client.util.ApiClient;
 import sk.ikts.client.util.NotificationWebSocketClient;
@@ -81,6 +88,27 @@ public class DashboardController implements Initializable {
     @FXML private Label completedTasksLabel;
     @FXML private Label completionRatioLabel;
     @FXML private ProgressBar completionProgressBar;
+    @FXML private PieChart taskStatusPieChart;
+    @FXML private BarChart<String, Number> taskStatusBarChart;
+    @FXML private CategoryAxis statusCategoryAxis;
+    @FXML private NumberAxis taskCountAxis;
+    @FXML private BarChart<String, Number> tasksByGroupBarChart;
+    @FXML private CategoryAxis groupCategoryAxis;
+    @FXML private NumberAxis groupTaskCountAxis;
+    @FXML private VBox activitySummaryBox;
+    @FXML private Label activityLabel;
+    
+    // Settings Tab
+    @FXML private TextField settingsNameField;
+    @FXML private PasswordField settingsPasswordField;
+    @FXML private PasswordField settingsConfirmPasswordField;
+    @FXML private Button updateNameButton;
+    @FXML private Button updatePasswordButton;
+    @FXML private TableView<User> usersTable;
+    @FXML private TableColumn<User, String> userNameColumn;
+    @FXML private TableColumn<User, String> userEmailColumn;
+    
+    private ObservableList<User> usersList = FXCollections.observableArrayList();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -95,6 +123,7 @@ public class DashboardController implements Initializable {
         // Setup tables
         setupGroupsTable();
         setupTasksTable();
+        setupUsersTable();
         
         // Setup buttons
         if (createGroupButton != null) {
@@ -108,6 +137,29 @@ public class DashboardController implements Initializable {
         }
         if (profileButton != null) {
             profileButton.setOnAction(e -> showProfileDialog());
+        }
+        
+        // Initialize charts
+        initializeCharts();
+    }
+    
+    private void initializeCharts() {
+        // Initialize PieChart
+        if (taskStatusPieChart != null) {
+            taskStatusPieChart.setTitle("Task Status Distribution");
+            taskStatusPieChart.setLegendVisible(true);
+        }
+        
+        // Initialize BarChart for task status
+        if (taskStatusBarChart != null) {
+            taskStatusBarChart.setTitle("Tasks by Status");
+            taskStatusBarChart.setLegendVisible(false);
+        }
+        
+        // Initialize BarChart for tasks by group
+        if (tasksByGroupBarChart != null) {
+            tasksByGroupBarChart.setTitle("Tasks by Group");
+            tasksByGroupBarChart.setLegendVisible(false);
         }
     }
     
@@ -200,14 +252,32 @@ public class DashboardController implements Initializable {
                         Group group = getTableRow().getItem();
                         HBox hbox = new HBox(5);
                         Button viewButton = new Button("View");
-                        viewButton.setOnAction(e -> viewGroupDetails(group));
-                        hbox.getChildren().add(viewButton);
+                        viewButton.setOnAction(e -> DashboardController.this.viewGroupDetails(group));
+                        Button editButton = new Button("Edit");
+                        editButton.setOnAction(e -> DashboardController.this.showEditGroupDialog(group));
+                        Button deleteButton = new Button("Delete");
+                        deleteButton.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white;");
+                        deleteButton.setOnAction(e -> DashboardController.this.deleteGroup(group));
+                        hbox.getChildren().addAll(viewButton, editButton, deleteButton);
                         setGraphic(hbox);
                     }
                 }
             });
         }
-        groupsTable.setItems(groupsList);
+        if (groupsTable != null) {
+            groupsTable.setItems(groupsList);
+            // Add double-click to view group details
+            groupsTable.setRowFactory(tv -> {
+                TableRow<Group> row = new TableRow<>();
+                row.setOnMouseClicked(event -> {
+                    if (event.getClickCount() == 2 && !row.isEmpty()) {
+                        Group group = row.getItem();
+                        viewGroupDetails(group);
+                    }
+                });
+                return row;
+            });
+        }
     }
     
     private void setupTasksTable() {
@@ -334,9 +404,10 @@ public class DashboardController implements Initializable {
             statusLabel.setText("Loading data...");
         }
 
-        // Load groups and tasks in parallel
+        // Load groups, tasks, and users in parallel
         CompletableFuture<Void> groupsFuture = loadGroups();
         CompletableFuture<Void> tasksFuture = loadTasks();
+        loadUsers(); // Load users
 
         CompletableFuture.allOf(groupsFuture, tasksFuture).thenRun(() -> {
             Platform.runLater(() -> {
@@ -423,6 +494,121 @@ public class DashboardController implements Initializable {
     @FXML
     private void handleRefresh() {
         loadData();
+        loadUsers();
+    }
+    
+    private void setupUsersTable() {
+        if (userNameColumn != null) {
+            userNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+        }
+        if (userEmailColumn != null) {
+            userEmailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
+        }
+        if (usersTable != null) {
+            usersTable.setItems(usersList);
+        }
+    }
+    
+    private void loadUsers() {
+        CompletableFuture.runAsync(() -> {
+            try {
+                String response = ApiClient.get("/users");
+                Type listType = new TypeToken<List<User>>(){}.getType();
+                List<User> users = gson.fromJson(response, listType);
+                
+                Platform.runLater(() -> {
+                    if (users != null) {
+                        usersList.setAll(users);
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+    
+    @FXML
+    private void handleUpdateName() {
+        if (userId == null || settingsNameField == null) return;
+        
+        String newName = settingsNameField.getText().trim();
+        if (newName.isEmpty()) {
+            new Alert(Alert.AlertType.WARNING, "Name cannot be empty").show();
+            return;
+        }
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                Map<String, String> request = new HashMap<>();
+                request.put("name", newName);
+                
+                String response = ApiClient.put("/users/" + userId, request);
+                User updatedUser = gson.fromJson(response, User.class);
+                
+                Platform.runLater(() -> {
+                    if (updatedUser != null) {
+                        new Alert(Alert.AlertType.INFORMATION, "Name updated successfully!").show();
+                        settingsNameField.clear();
+                        loadUsers(); // Refresh users list
+                    } else {
+                        new Alert(Alert.AlertType.ERROR, "Failed to update name").show();
+                    }
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    new Alert(Alert.AlertType.ERROR, "Failed to update name: " + e.getMessage()).show();
+                });
+                e.printStackTrace();
+            }
+        });
+    }
+    
+    @FXML
+    private void handleUpdatePassword() {
+        if (userId == null || settingsPasswordField == null || settingsConfirmPasswordField == null) return;
+        
+        String newPassword = settingsPasswordField.getText();
+        String confirmPassword = settingsConfirmPasswordField.getText();
+        
+        if (newPassword.isEmpty()) {
+            new Alert(Alert.AlertType.WARNING, "Password cannot be empty").show();
+            return;
+        }
+        
+        if (!newPassword.equals(confirmPassword)) {
+            new Alert(Alert.AlertType.WARNING, "Passwords do not match").show();
+            return;
+        }
+        
+        if (newPassword.length() < 6) {
+            new Alert(Alert.AlertType.WARNING, "Password must be at least 6 characters long").show();
+            return;
+        }
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                Map<String, String> request = new HashMap<>();
+                request.put("password", newPassword);
+                
+                String response = ApiClient.put("/users/" + userId, request);
+                User updatedUser = gson.fromJson(response, User.class);
+                
+                Platform.runLater(() -> {
+                    if (updatedUser != null) {
+                        new Alert(Alert.AlertType.INFORMATION, "Password updated successfully!").show();
+                        settingsPasswordField.clear();
+                        settingsConfirmPasswordField.clear();
+                    } else {
+                        new Alert(Alert.AlertType.ERROR, "Failed to update password").show();
+                    }
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    new Alert(Alert.AlertType.ERROR, "Failed to update password: " + e.getMessage()).show();
+                });
+                e.printStackTrace();
+            }
+        });
     }
 
     /**
@@ -790,6 +976,112 @@ public class DashboardController implements Initializable {
         }
     }
 
+    private void showEditGroupDialog(Group group) {
+        Dialog<Map<String, String>> dialog = new Dialog<>();
+        dialog.setTitle("Edit Group");
+        dialog.setHeaderText("Edit group information");
+
+        TextField nameField = new TextField(group.getName());
+        TextArea descriptionArea = new TextArea(group.getDescription() != null ? group.getDescription() : "");
+        descriptionArea.setPromptText("Description");
+        descriptionArea.setPrefRowCount(3);
+
+        javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(10);
+        content.getChildren().addAll(
+                new Label("Name:"), nameField,
+                new Label("Description:"), descriptionArea);
+        dialog.getDialogPane().setContent(content);
+
+        ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == saveButtonType) {
+                Map<String, String> result = new HashMap<>();
+                result.put("name", nameField.getText().trim());
+                result.put("description", descriptionArea.getText().trim());
+                return result;
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(result -> {
+            if (!result.get("name").isEmpty()) {
+                updateGroup(group.getGroupId(), result.get("name"), result.get("description"));
+            }
+        });
+    }
+
+    private void updateGroup(Long groupId, String name, String description) {
+        if (userId == null) {
+            showError("User ID not available");
+            return;
+        }
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                Map<String, Object> request = new HashMap<>();
+                request.put("name", name);
+                request.put("description", description);
+                request.put("createdBy", userId); // Required by CreateGroupRequest
+
+                String response = ApiClient.put("/groups/" + groupId, request);
+                Group updatedGroup = gson.fromJson(response, Group.class);
+                
+                Platform.runLater(() -> {
+                    if (updatedGroup != null) {
+                        // Update group in list
+                        for (int i = 0; i < groupsList.size(); i++) {
+                            if (groupsList.get(i).getGroupId().equals(groupId)) {
+                                groupsList.set(i, updatedGroup);
+                                allGroups = List.copyOf(groupsList);
+                                break;
+                            }
+                        }
+                        updateStatistics();
+                        updateGroupFilter();
+                        new Alert(Alert.AlertType.INFORMATION, "Group updated successfully!").show();
+                    }
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    showError("Failed to update group: " + e.getMessage());
+                });
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private void deleteGroup(Group group) {
+        Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmAlert.setTitle("Delete Group");
+        confirmAlert.setHeaderText("Are you sure you want to delete this group?");
+        confirmAlert.setContentText("Group: " + group.getName() + "\n\nThis action cannot be undone.");
+
+        confirmAlert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        ApiClient.delete("/groups/" + group.getGroupId());
+                        
+                        Platform.runLater(() -> {
+                            groupsList.remove(group);
+                            allGroups = List.copyOf(groupsList);
+                            updateStatistics();
+                            updateGroupFilter();
+                            new Alert(Alert.AlertType.INFORMATION, "Group deleted successfully!").show();
+                        });
+                    } catch (Exception e) {
+                        Platform.runLater(() -> {
+                            showError("Failed to delete group: " + e.getMessage());
+                        });
+                        e.printStackTrace();
+                    }
+                });
+            }
+        });
+    }
+
     private void updateStatistics() {
         Map<String, Integer> stats = getStatistics();
         if (totalGroupsLabel != null) {
@@ -816,6 +1108,193 @@ public class DashboardController implements Initializable {
         }
         if (completionProgressBar != null) {
             completionProgressBar.setProgress(ratio);
+        }
+        
+        // Update charts
+        updateCharts();
+    }
+    
+    private void updateCharts() {
+        // Update PieChart - Task Status Distribution
+        if (taskStatusPieChart != null) {
+            ObservableList<PieChart.Data> pieChartData = FXCollections.observableArrayList();
+            
+            long openCount = tasksList.stream()
+                    .filter(t -> t.getStatus() == Task.TaskStatus.OPEN)
+                    .count();
+            long inProgressCount = tasksList.stream()
+                    .filter(t -> t.getStatus() == Task.TaskStatus.IN_PROGRESS)
+                    .count();
+            long doneCount = tasksList.stream()
+                    .filter(t -> t.getStatus() == Task.TaskStatus.DONE)
+                    .count();
+            
+            if (openCount > 0) {
+                PieChart.Data openData = new PieChart.Data("Open (" + openCount + ")", openCount);
+                pieChartData.add(openData);
+            }
+            if (inProgressCount > 0) {
+                PieChart.Data inProgressData = new PieChart.Data("In Progress (" + inProgressCount + ")", inProgressCount);
+                pieChartData.add(inProgressData);
+            }
+            if (doneCount > 0) {
+                PieChart.Data doneData = new PieChart.Data("Done (" + doneCount + ")", doneCount);
+                pieChartData.add(doneData);
+            }
+            
+            taskStatusPieChart.setData(pieChartData);
+            
+            // Set colors for pie chart slices
+            if (!pieChartData.isEmpty()) {
+                for (PieChart.Data data : pieChartData) {
+                    String color = "#f39c12"; // Orange for Open
+                    if (data.getName().contains("In Progress")) {
+                        color = "#3498db"; // Blue for In Progress
+                    } else if (data.getName().contains("Done")) {
+                        color = "#27ae60"; // Green for Done
+                    }
+                    data.getNode().setStyle("-fx-pie-color: " + color + ";");
+                }
+            }
+        }
+        
+        // Update BarChart - Tasks by Status
+        if (taskStatusBarChart != null) {
+            taskStatusBarChart.getData().clear();
+            
+            XYChart.Series<String, Number> series = new XYChart.Series<>();
+            series.setName("Tasks");
+            
+            long openCount = tasksList.stream()
+                    .filter(t -> t.getStatus() == Task.TaskStatus.OPEN)
+                    .count();
+            long inProgressCount = tasksList.stream()
+                    .filter(t -> t.getStatus() == Task.TaskStatus.IN_PROGRESS)
+                    .count();
+            long doneCount = tasksList.stream()
+                    .filter(t -> t.getStatus() == Task.TaskStatus.DONE)
+                    .count();
+            
+            series.getData().add(new XYChart.Data<>("Open", openCount));
+            series.getData().add(new XYChart.Data<>("In Progress", inProgressCount));
+            series.getData().add(new XYChart.Data<>("Done", doneCount));
+            
+            taskStatusBarChart.getData().add(series);
+        }
+        
+        // Update BarChart - Tasks by Group
+        if (tasksByGroupBarChart != null) {
+            tasksByGroupBarChart.getData().clear();
+            
+            XYChart.Series<String, Number> series = new XYChart.Series<>();
+            series.setName("Tasks");
+            
+            // Count tasks per group
+            Map<String, Long> tasksPerGroup = new HashMap<>();
+            for (Task task : tasksList) {
+                Group group = allGroups.stream()
+                        .filter(g -> g.getGroupId().equals(task.getGroupId()))
+                        .findFirst()
+                        .orElse(null);
+                String groupName = group != null ? group.getName() : "Unknown";
+                tasksPerGroup.put(groupName, tasksPerGroup.getOrDefault(groupName, 0L) + 1);
+            }
+            
+            for (Map.Entry<String, Long> entry : tasksPerGroup.entrySet()) {
+                series.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
+            }
+            
+            tasksByGroupBarChart.getData().add(series);
+        }
+        
+        // Update Activity Monitoring
+        updateActivityMonitoring();
+    }
+    
+    private void updateActivityMonitoring() {
+        if (activitySummaryBox == null) return;
+        
+        activitySummaryBox.getChildren().clear();
+        
+        // Calculate activity statistics
+        int totalGroups = groupsList.size();
+        int totalTasks = tasksList.size();
+        int completedTasks = (int) tasksList.stream()
+                .filter(t -> t.getStatus() == Task.TaskStatus.DONE)
+                .count();
+        int openTasks = (int) tasksList.stream()
+                .filter(t -> t.getStatus() == Task.TaskStatus.OPEN)
+                .count();
+        int inProgressTasks = (int) tasksList.stream()
+                .filter(t -> t.getStatus() == Task.TaskStatus.IN_PROGRESS)
+                .count();
+        
+        double completionRate = totalTasks > 0 ? (double) completedTasks / totalTasks * 100 : 0.0;
+        
+        // Create activity summary labels
+        Label groupsLabel = new Label("• Total Groups: " + totalGroups);
+        groupsLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #2c3e50;");
+        activitySummaryBox.getChildren().add(groupsLabel);
+        
+        Label tasksLabel = new Label("• Total Tasks: " + totalTasks);
+        tasksLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #2c3e50;");
+        activitySummaryBox.getChildren().add(tasksLabel);
+        
+        Label openLabel = new Label("• Open Tasks: " + openTasks);
+        openLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #f39c12;");
+        activitySummaryBox.getChildren().add(openLabel);
+        
+        Label inProgressLabel = new Label("• In Progress: " + inProgressTasks);
+        inProgressLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #3498db;");
+        activitySummaryBox.getChildren().add(inProgressLabel);
+        
+        Label completedLabel = new Label("• Completed: " + completedTasks);
+        completedLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #27ae60;");
+        activitySummaryBox.getChildren().add(completedLabel);
+        
+        Label completionRateLabel = new Label("• Completion Rate: " + String.format("%.1f", completionRate) + "%");
+        completionRateLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #27ae60;");
+        activitySummaryBox.getChildren().add(completionRateLabel);
+        
+        // Add separator
+        Separator separator = new Separator();
+        activitySummaryBox.getChildren().add(separator);
+        
+        // Show recent activity (last 5 tasks)
+        Label recentLabel = new Label("Recent Tasks:");
+        recentLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
+        activitySummaryBox.getChildren().add(recentLabel);
+        
+        List<Task> recentTasks = tasksList.stream()
+                .sorted((t1, t2) -> {
+                    if (t1.getCreatedAt() != null && t2.getCreatedAt() != null) {
+                        return t2.getCreatedAt().compareTo(t1.getCreatedAt());
+                    }
+                    return 0;
+                })
+                .limit(5)
+                .toList();
+        
+        if (recentTasks.isEmpty()) {
+            Label noTasksLabel = new Label("No tasks yet. Create your first task!");
+            noTasksLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #7f8c8d; -fx-font-style: italic;");
+            activitySummaryBox.getChildren().add(noTasksLabel);
+        } else {
+            for (Task task : recentTasks) {
+                Group taskGroup = allGroups.stream()
+                        .filter(g -> g.getGroupId().equals(task.getGroupId()))
+                        .findFirst()
+                        .orElse(null);
+                String groupName = taskGroup != null ? taskGroup.getName() : "Unknown";
+                String status = task.getStatus().name();
+                String created = task.getCreatedAt() != null ? 
+                    task.getCreatedAt().format(dateFormatter) : "N/A";
+                
+                Label taskLabel = new Label("  - " + task.getTitle() + " (" + groupName + ") - " + 
+                    status + " - " + created);
+                taskLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #7f8c8d;");
+                activitySummaryBox.getChildren().add(taskLabel);
+            }
         }
     }
 

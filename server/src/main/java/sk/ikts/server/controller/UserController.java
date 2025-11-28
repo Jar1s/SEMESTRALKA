@@ -13,6 +13,7 @@ import sk.ikts.server.dto.UserDTO;
 import sk.ikts.server.service.UserService;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -110,6 +111,22 @@ public class UserController {
         }
         
         return ResponseEntity.ok(user);
+    }
+
+    /**
+     * Get all users
+     * GET /api/users
+     */
+    @GetMapping
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
+        try {
+            List<UserDTO> users = userService.getAllUsers();
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            System.err.println("Error getting users: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**

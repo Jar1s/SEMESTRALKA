@@ -6,6 +6,7 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import sk.ikts.server.dto.ChatMessageDTO;
 import sk.ikts.server.dto.NotificationDTO;
 
 import java.io.IOException;
@@ -19,7 +20,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 public class SimpleWebSocketHandler extends TextWebSocketHandler {
 
     private final CopyOnWriteArraySet<WebSocketSession> sessions = new CopyOnWriteArraySet<>();
-    private final Gson gson = new Gson();
+    private final Gson gson = GsonConfig.createGson();
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -54,6 +55,26 @@ public class SimpleWebSocketHandler extends TextWebSocketHandler {
                 }
             } catch (IOException e) {
                 System.err.println("Error sending WebSocket message: " + e.getMessage());
+            }
+            return true; // Remove closed sessions
+        });
+    }
+
+    /**
+     * Broadcast chat message to all connected clients
+     */
+    public void broadcastChatMessage(ChatMessageDTO chatMessage) {
+        String json = gson.toJson(chatMessage);
+        TextMessage message = new TextMessage(json);
+        
+        sessions.removeIf(session -> {
+            try {
+                if (session.isOpen()) {
+                    session.sendMessage(message);
+                    return false;
+                }
+            } catch (IOException e) {
+                System.err.println("Error sending chat message: " + e.getMessage());
             }
             return true; // Remove closed sessions
         });

@@ -13,13 +13,18 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import okhttp3.*;
+import sk.ikts.client.model.ChatMessage;
 import sk.ikts.client.model.Group;
 import sk.ikts.client.model.Resource;
 import sk.ikts.client.model.Task;
 import sk.ikts.client.util.ApiClient;
+import sk.ikts.client.util.ChatWebSocketClient;
 import sk.ikts.client.util.SceneManager;
 
 import java.io.File;
@@ -69,6 +74,15 @@ public class GroupDetailController implements Initializable {
     
     // Members
     @FXML private ListView<String> membersList;
+    
+    // Chat
+    @FXML private VBox chatMessagesBox;
+    @FXML private ScrollPane chatScrollPane;
+    @FXML private TextField chatMessageField;
+    @FXML private Button sendMessageButton;
+    
+    private ChatWebSocketClient chatWebSocketClient;
+    private String currentUserName;
 
     public void setGroup(Group group) {
         this.group = group;
@@ -80,11 +94,50 @@ public class GroupDetailController implements Initializable {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+        // Load user name for chat
+        loadUserName();
+    }
+    
+    private void loadUserName() {
+        if (userId == null) return;
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                String response = ApiClient.get("/users/" + userId);
+                Map<String, Object> user = gson.fromJson(response, Map.class);
+                if (user != null && user.get("name") != null) {
+                    currentUserName = user.get("name").toString();
+                }
+            } catch (Exception e) {
+                currentUserName = "User " + userId;
+                e.printStackTrace();
+            }
+        });
     }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setupTables();
+        
+        // Setup buttons
+        if (uploadFileButton != null) {
+            uploadFileButton.setOnAction(e -> handleUploadFile());
+        }
+        if (shareUrlButton != null) {
+            shareUrlButton.setOnAction(e -> handleShareUrl());
+        }
+        if (createTaskButton != null) {
+            createTaskButton.setOnAction(e -> handleCreateTask());
+        }
+        if (backButton != null) {
+            backButton.setOnAction(e -> handleBack());
+        }
+        if (sendMessageButton != null) {
+            sendMessageButton.setOnAction(e -> handleSendMessage());
+        }
+        if (chatMessageField != null) {
+            chatMessageField.setOnAction(e -> handleSendMessage());
+        }
     }
 
     private void setupTables() {
@@ -120,11 +173,13 @@ public class GroupDetailController implements Initializable {
                     } else {
                         Task task = getTableRow().getItem();
                         HBox hbox = new HBox(5);
+                        Button editButton = new Button("Edit");
+                        editButton.setOnAction(e -> showEditTaskDialog(task));
                         ComboBox<Task.TaskStatus> statusCombo = new ComboBox<>(
                                 FXCollections.observableArrayList(Task.TaskStatus.values()));
                         statusCombo.setValue(task.getStatus());
                         statusCombo.setOnAction(e -> updateTaskStatus(task.getTaskId(), statusCombo.getValue()));
-                        hbox.getChildren().add(statusCombo);
+                        hbox.getChildren().addAll(editButton, statusCombo);
                         setGraphic(hbox);
                     }
                 }
@@ -132,6 +187,17 @@ public class GroupDetailController implements Initializable {
         }
         if (tasksTable != null) {
             tasksTable.setItems(tasksList);
+            // Add double-click to edit task
+            tasksTable.setRowFactory(tv -> {
+                TableRow<Task> row = new TableRow<>();
+                row.setOnMouseClicked(event -> {
+                    if (event.getClickCount() == 2 && !row.isEmpty()) {
+                        Task task = row.getItem();
+                        showEditTaskDialog(task);
+                    }
+                });
+                return row;
+            });
         }
 
         // Resources table
@@ -168,13 +234,17 @@ public class GroupDetailController implements Initializable {
                         HBox hbox = new HBox(5);
                         if (resource.getType() == Resource.ResourceType.FILE) {
                             Button downloadButton = new Button("Download");
-                            downloadButton.setOnAction(e -> downloadResource(resource));
+                            downloadButton.setOnAction(e -> GroupDetailController.this.downloadResource(resource));
                             hbox.getChildren().add(downloadButton);
                         } else {
                             Button openButton = new Button("Open");
-                            openButton.setOnAction(e -> openUrl(resource.getPathOrUrl()));
+                            openButton.setOnAction(e -> GroupDetailController.this.openUrl(resource.getPathOrUrl()));
                             hbox.getChildren().add(openButton);
                         }
+                        Button deleteButton = new Button("Delete");
+                        deleteButton.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white;");
+                        deleteButton.setOnAction(e -> GroupDetailController.this.deleteResource(resource));
+                        hbox.getChildren().add(deleteButton);
                         setGraphic(hbox);
                     }
                 }
@@ -191,6 +261,119 @@ public class GroupDetailController implements Initializable {
         loadTasks();
         loadResources();
         loadMembers();
+        loadChatMessages();
+        connectChatWebSocket();
+    }
+    
+    private void loadChatMessages() {
+        if (group == null || chatMessagesBox == null) return;
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                String response = ApiClient.get("/chat/group/" + group.getGroupId());
+                Type listType = new TypeToken<List<ChatMessage>>(){}.getType();
+                List<ChatMessage> messages = gson.fromJson(response, listType);
+                
+                Platform.runLater(() -> {
+                    chatMessagesBox.getChildren().clear();
+                    if (messages != null) {
+                        for (ChatMessage message : messages) {
+                            addChatMessageToUI(message);
+                        }
+                        scrollChatToBottom();
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+    
+    private void connectChatWebSocket() {
+        if (group == null || userId == null) return;
+        
+        // Disconnect existing connection
+        if (chatWebSocketClient != null) {
+            chatWebSocketClient.disconnect();
+        }
+        
+        chatWebSocketClient = new ChatWebSocketClient();
+        chatWebSocketClient.connect(group.getGroupId(), this::addChatMessageToUI);
+    }
+    
+    private void addChatMessageToUI(ChatMessage message) {
+        if (chatMessagesBox == null) return;
+        
+        Platform.runLater(() -> {
+            HBox messageBox = new HBox(10);
+            messageBox.setStyle("-fx-padding: 5;");
+            
+            boolean isMyMessage = message.getUserId().equals(userId);
+            
+            VBox contentBox = new VBox(3);
+            Label nameLabel = new Label(message.getUserName() + 
+                (message.getSentAt() != null ? " - " + message.getSentAt().format(dateFormatter) : ""));
+            nameLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #7f8c8d;");
+            
+            Label messageLabel = new Label(message.getMessage());
+            messageLabel.setWrapText(true);
+            messageLabel.setMaxWidth(600);
+            messageLabel.setStyle("-fx-font-size: 12px; -fx-padding: 8; " +
+                (isMyMessage ? 
+                    "-fx-background-color: #3498db; -fx-text-fill: white; -fx-background-radius: 10;" :
+                    "-fx-background-color: #ecf0f1; -fx-text-fill: #2c3e50; -fx-background-radius: 10;"));
+            
+            contentBox.getChildren().addAll(nameLabel, messageLabel);
+            
+            if (isMyMessage) {
+                messageBox.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+                Region spacer = new Region();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                messageBox.getChildren().addAll(spacer, contentBox);
+            } else {
+                messageBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                messageBox.getChildren().add(contentBox);
+            }
+            
+            chatMessagesBox.getChildren().add(messageBox);
+            scrollChatToBottom();
+        });
+    }
+    
+    private void scrollChatToBottom() {
+        if (chatScrollPane != null) {
+            Platform.runLater(() -> {
+                chatScrollPane.setVvalue(1.0);
+            });
+        }
+    }
+    
+    @FXML
+    private void handleSendMessage() {
+        if (group == null || userId == null || chatMessageField == null) return;
+        
+        String messageText = chatMessageField.getText().trim();
+        if (messageText.isEmpty()) return;
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                Map<String, Object> request = new HashMap<>();
+                request.put("groupId", group.getGroupId());
+                request.put("userId", userId);
+                request.put("message", messageText);
+                
+                ApiClient.post("/chat/send", request);
+                
+                Platform.runLater(() -> {
+                    chatMessageField.clear();
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    new Alert(Alert.AlertType.ERROR, "Failed to send message: " + e.getMessage()).show();
+                });
+                e.printStackTrace();
+            }
+        });
     }
 
     private void loadTasks() {
@@ -238,14 +421,30 @@ public class GroupDetailController implements Initializable {
 
     @FXML
     private void handleBack() {
+        // Disconnect chat WebSocket
+        if (chatWebSocketClient != null) {
+            chatWebSocketClient.disconnect();
+        }
+        
         try {
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/sk/ikts/client/view/dashboard.fxml"));
             Parent root = loader.load();
+            
+            // Get the controller and set userId
+            sk.ikts.client.controller.DashboardController controller = loader.getController();
+            if (controller != null && userId != null) {
+                controller.setUserId(userId);
+                controller.loadData();
+            }
+            
             Stage stage = (Stage) backButton.getScene().getWindow();
             stage.setScene(new Scene(root, 1000, 700));
         } catch (Exception e) {
             e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setContentText("Failed to return to dashboard: " + e.getMessage());
+            alert.show();
         }
     }
 
@@ -344,6 +543,20 @@ public class GroupDetailController implements Initializable {
     }
 
     private void uploadFile(File file, String title) {
+        if (userId == null || group == null) {
+            Platform.runLater(() -> {
+                new Alert(Alert.AlertType.ERROR, "Cannot upload: User or group not set").show();
+            });
+            return;
+        }
+        
+        // Show progress dialog
+        Alert progressAlert = new Alert(Alert.AlertType.INFORMATION);
+        progressAlert.setTitle("Uploading File");
+        progressAlert.setHeaderText("Please wait...");
+        progressAlert.setContentText("Uploading " + file.getName() + "...");
+        progressAlert.show();
+        
         CompletableFuture.runAsync(() -> {
             try {
                 RequestBody fileBody = RequestBody.create(file, MediaType.parse("application/octet-stream"));
@@ -356,25 +569,34 @@ public class GroupDetailController implements Initializable {
                         .build();
 
                 Request request = new Request.Builder()
-                        .url("http://localhost:8080/api/resources/upload")
+                        .url("http://localhost:8081/api/resources/upload")
                         .post(requestBody)
                         .build();
 
                 try (Response response = httpClient.newCall(request).execute()) {
+                    Platform.runLater(() -> {
+                        progressAlert.close();
+                    });
+                    
                     if (response.isSuccessful()) {
                         Platform.runLater(() -> {
                             loadResources();
-                            new Alert(Alert.AlertType.INFORMATION, "File uploaded successfully!").show();
+                            new Alert(Alert.AlertType.INFORMATION, 
+                                "File '" + title + "' uploaded successfully!").show();
                         });
                     } else {
+                        String errorBody = response.body() != null ? response.body().string() : "Unknown error";
                         Platform.runLater(() -> {
-                            new Alert(Alert.AlertType.ERROR, "Failed to upload file").show();
+                            new Alert(Alert.AlertType.ERROR, 
+                                "Failed to upload file: " + response.code() + " - " + errorBody).show();
                         });
                     }
                 }
             } catch (Exception e) {
                 Platform.runLater(() -> {
-                    new Alert(Alert.AlertType.ERROR, "Error: " + e.getMessage()).show();
+                    progressAlert.close();
+                    new Alert(Alert.AlertType.ERROR, 
+                        "Error uploading file: " + e.getMessage()).show();
                 });
                 e.printStackTrace();
             }
@@ -447,7 +669,7 @@ public class GroupDetailController implements Initializable {
         CompletableFuture.runAsync(() -> {
             try {
                 Request request = new Request.Builder()
-                        .url("http://localhost:8080/api/resources/" + resource.getResourceId() + "/download")
+                        .url("http://localhost:8081/api/resources/" + resource.getResourceId() + "/download")
                         .get()
                         .build();
 
@@ -497,6 +719,111 @@ public class GroupDetailController implements Initializable {
                 String response = ApiClient.put("/tasks/" + taskId + "/status", request);
                 Platform.runLater(() -> loadTasks());
             } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private void deleteResource(Resource resource) {
+        Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmAlert.setTitle("Delete Resource");
+        confirmAlert.setHeaderText("Are you sure you want to delete this resource?");
+        confirmAlert.setContentText("Resource: " + resource.getTitle() + "\n\nThis action cannot be undone.");
+
+        confirmAlert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        ApiClient.delete("/resources/" + resource.getResourceId());
+                        
+                        Platform.runLater(() -> {
+                            loadResources();
+                            new Alert(Alert.AlertType.INFORMATION, "Resource deleted successfully!").show();
+                        });
+                    } catch (Exception e) {
+                        Platform.runLater(() -> {
+                            new Alert(Alert.AlertType.ERROR, "Failed to delete resource: " + e.getMessage()).show();
+                        });
+                        e.printStackTrace();
+                    }
+                });
+            }
+        });
+    }
+
+    private void showEditTaskDialog(Task task) {
+        Dialog<Map<String, Object>> dialog = new Dialog<>();
+        dialog.setTitle("Edit Task");
+        dialog.setHeaderText("Edit task information");
+
+        TextField titleField = new TextField(task.getTitle());
+        TextArea descriptionArea = new TextArea(task.getDescription() != null ? task.getDescription() : "");
+        descriptionArea.setPrefRowCount(3);
+        DatePicker deadlinePicker = new DatePicker();
+        if (task.getDeadline() != null) {
+            deadlinePicker.setValue(task.getDeadline().toLocalDate());
+        }
+        ComboBox<Task.TaskStatus> statusCombo = new ComboBox<>(
+                FXCollections.observableArrayList(Task.TaskStatus.values()));
+        statusCombo.setValue(task.getStatus());
+
+        javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(10);
+        content.getChildren().addAll(
+                new Label("Title:"), titleField,
+                new Label("Description:"), descriptionArea,
+                new Label("Status:"), statusCombo,
+                new Label("Deadline (optional):"), deadlinePicker);
+        dialog.getDialogPane().setContent(content);
+
+        ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == saveButtonType) {
+                Map<String, Object> result = new HashMap<>();
+                result.put("title", titleField.getText().trim());
+                result.put("description", descriptionArea.getText().trim());
+                result.put("status", statusCombo.getValue().name());
+                result.put("deadline", deadlinePicker.getValue() != null ? 
+                    deadlinePicker.getValue().atStartOfDay() : null);
+                return result;
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(result -> {
+            updateTask(task.getTaskId(), (String) result.get("title"), 
+                      (String) result.get("description"), 
+                      Task.TaskStatus.valueOf((String) result.get("status")),
+                      (LocalDateTime) result.get("deadline"));
+        });
+    }
+
+    private void updateTask(Long taskId, String title, String description, 
+                           Task.TaskStatus status, LocalDateTime deadline) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                Map<String, Object> request = new HashMap<>();
+                request.put("title", title);
+                request.put("description", description);
+                request.put("status", status.name());
+                if (deadline != null) {
+                    request.put("deadline", deadline.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                }
+
+                String response = ApiClient.put("/tasks/" + taskId, request);
+                Task updatedTask = gson.fromJson(response, Task.class);
+                
+                Platform.runLater(() -> {
+                    if (updatedTask != null) {
+                        loadTasks(); // Reload tasks to show updated data
+                        new Alert(Alert.AlertType.INFORMATION, "Task updated successfully!").show();
+                    }
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    new Alert(Alert.AlertType.ERROR, "Failed to update task: " + e.getMessage()).show();
+                });
                 e.printStackTrace();
             }
         });

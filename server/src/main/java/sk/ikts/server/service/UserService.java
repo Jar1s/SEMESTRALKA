@@ -10,7 +10,9 @@ import sk.ikts.server.dto.UserDTO;
 import sk.ikts.server.model.User;
 import sk.ikts.server.repository.UserRepository;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Service for user management operations
@@ -75,6 +77,16 @@ public class UserService {
         // Return success response
         UserDTO userDTO = new UserDTO(user.getUserId(), user.getEmail(), user.getName());
         return new LoginResponse(true, "Login successful", userDTO);
+    }
+
+    /**
+     * Get all users
+     * @return List of UserDTO
+     */
+    public List<UserDTO> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(user -> new UserDTO(user.getUserId(), user.getEmail(), user.getName()))
+                .collect(Collectors.toList());
     }
 
     /**

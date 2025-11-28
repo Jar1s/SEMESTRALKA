@@ -7,15 +7,16 @@
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="sk.ikts.client.controller.GroupDetailController"
-            style="-fx-background-color: #f5f5f5;">
+            stylesheets="@../styles/modern.css"
+            styleClass="main-background">
     
     <top>
-        <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-background-color: #2c3e50; -fx-padding: 15;">
-            <Label fx:id="groupNameLabel" text="Group Name" 
-                   style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;"/>
+        <HBox spacing="15" alignment="CENTER_LEFT" styleClass="top-bar">
+            <Label fx:id="groupNameLabel" text="📁 Group Name" 
+                   style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;"/>
             <Region HBox.hgrow="ALWAYS"/>
-            <Button fx:id="backButton" text="Back" onAction="#handleBack"
-                    style="-fx-background-color: #95a5a6; -fx-text-fill: white;"/>
+            <Button fx:id="backButton" text="⬅ Back" onAction="#handleBack"
+                    styleClass="modern-button"/>
         </HBox>
     </top>
     
@@ -30,15 +31,15 @@
                         </padding>
                         <children>
                             <HBox spacing="10" alignment="CENTER_LEFT">
-                                <Label text="Group Tasks" 
-                                       style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                                <Label text="✅ Group Tasks" 
+                                       styleClass="section-label"/>
                                 <Region HBox.hgrow="ALWAYS"/>
-                                <Button fx:id="createTaskButton" text="+ Create Task" 
+                                <Button fx:id="createTaskButton" text="➕ Create Task" 
                                         onAction="#handleCreateTask"
-                                        style="-fx-background-color: #3498db; -fx-text-fill: white;"/>
+                                        styleClass="modern-button"/>
                             </HBox>
                             
-                            <TableView fx:id="tasksTable" prefHeight="400">
+                            <TableView fx:id="tasksTable" prefHeight="400" styleClass="table-view">
                                 <columns>
                                     <TableColumn fx:id="taskTitleColumn" text="Title" prefWidth="200"/>
                                     <TableColumn fx:id="taskStatusColumn" text="Status" prefWidth="120"/>
@@ -58,18 +59,18 @@
                         </padding>
                         <children>
                             <HBox spacing="10" alignment="CENTER_LEFT">
-                                <Label text="Shared Resources" 
-                                       style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                                <Label text="📎 Shared Resources" 
+                                       styleClass="section-label"/>
                                 <Region HBox.hgrow="ALWAYS"/>
-                                <Button fx:id="uploadFileButton" text="Upload File" 
+                                <Button fx:id="uploadFileButton" text="📤 Upload File" 
                                         onAction="#handleUploadFile"
-                                        style="-fx-background-color: #27ae60; -fx-text-fill: white;"/>
-                                <Button fx:id="shareUrlButton" text="Share URL" 
+                                        styleClass="success-button"/>
+                                <Button fx:id="shareUrlButton" text="🔗 Share URL" 
                                         onAction="#handleShareUrl"
-                                        style="-fx-background-color: #3498db; -fx-text-fill: white;"/>
+                                        styleClass="modern-button"/>
                             </HBox>
                             
-                            <TableView fx:id="resourcesTable" prefHeight="400">
+                            <TableView fx:id="resourcesTable" prefHeight="400" styleClass="table-view">
                                 <columns>
                                     <TableColumn fx:id="resourceTitleColumn" text="Title" prefWidth="200"/>
                                     <TableColumn fx:id="resourceTypeColumn" text="Type" prefWidth="100"/>
@@ -81,6 +82,28 @@
                     </VBox>
                 </Tab>
                 
+                <!-- Chat Tab -->
+                <Tab text="Chat">
+                    <BorderPane>
+                        <center>
+                            <ScrollPane fx:id="chatScrollPane" fitToWidth="true" vvalue="1.0">
+                                <VBox fx:id="chatMessagesBox" spacing="5" style="-fx-padding: 10;">
+                                    <!-- Messages will be added here -->
+                                </VBox>
+                            </ScrollPane>
+                        </center>
+                        <bottom>
+                            <HBox spacing="10" style="-fx-padding: 15; -fx-background-color: white; -fx-background-radius: 0 0 10 10;">
+                                <TextField fx:id="chatMessageField" promptText="Type your message..." 
+                                           HBox.hgrow="ALWAYS" onAction="#handleSendMessage" styleClass="modern-text-field"/>
+                                <Button fx:id="sendMessageButton" text="📤 Send" 
+                                        onAction="#handleSendMessage"
+                                        styleClass="modern-button"/>
+                            </HBox>
+                        </bottom>
+                    </BorderPane>
+                </Tab>
+                
                 <!-- Members Tab -->
                 <Tab text="Members">
                     <VBox spacing="10">
@@ -88,10 +111,10 @@
                             <Insets top="10" right="10" bottom="10" left="10"/>
                         </padding>
                         <children>
-                            <Label text="Group Members" 
-                                   style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                            <Label text="👥 Group Members" 
+                                   styleClass="section-label"/>
                             
-                            <ListView fx:id="membersList" prefHeight="400"/>
+                            <ListView fx:id="membersList" prefHeight="400" styleClass="list-view"/>
                         </children>
                     </VBox>
                 </Tab>
