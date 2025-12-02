@@ -1310,7 +1310,7 @@ public class DashboardController implements Initializable {
             if (response == ButtonType.OK) {
                 CompletableFuture.runAsync(() -> {
                     try {
-                        Map<String, Long> request = new HashMap<>();
+                        Map<String, Object> request = new HashMap<>();
                         request.put("userId", userId);
                         
                         ApiClient.delete("/groups/" + group.getGroupId() + "/leave", request);
