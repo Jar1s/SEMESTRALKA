@@ -9,7 +9,7 @@ import sk.ikts.client.util.NotificationManager;
 import sk.ikts.client.util.SceneManager;
 
 /**
- * Entry point for the Collaborative Study Platform desktop client.
+ * Entry point for the CALLSTUDY desktop client.
  * Currently loads a lightweight dashboard shell so the project can be launched
  * from IntelliJ or Maven javaFX plugin without class not found errors.
  */
@@ -27,7 +27,7 @@ public class CollaborativeStudyPlatform extends Application {
                 CollaborativeStudyPlatform.class.getResource("/sk/ikts/client/view/login.fxml"));
         Parent root = loader.load();
 
-        primaryStage.setTitle("Collaborative Study Platform");
+        primaryStage.setTitle("CALLSTUDY");
         primaryStage.setScene(new Scene(root));
         primaryStage.setMinWidth(450);
         primaryStage.setMinHeight(550);

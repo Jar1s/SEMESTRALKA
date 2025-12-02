@@ -13,7 +13,7 @@
     <!-- Top: Status bar -->
     <top>
         <HBox spacing="15" alignment="CENTER_LEFT" styleClass="top-bar">
-            <Label text="📚 Collaborative Study Platform"
+            <Label text="📚 CALLSTUDY"
                    styleClass="title-label"
                    style="-fx-text-fill: white; -fx-font-size: 20px;"/>
             <Region HBox.hgrow="ALWAYS"/>

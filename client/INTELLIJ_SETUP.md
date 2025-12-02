@@ -6,7 +6,7 @@
    - Run → Edit Configurations...
    - Kliknite na "+" → Application
    - Nastavte:
-     - **Name:** Collaborative Study Platform Client
+     - **Name:** CALLSTUDY Client
      - **Main class:** `sk.ikts.client.CollaborativeStudyPlatform`
      - **Module:** `client`
      - **Use classpath of module:** `client`

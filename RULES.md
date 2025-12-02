@@ -1,4 +1,4 @@
-# 🤖 RULES.md – Collaborative Study Platform (Jaroslav Birčák)
+# 🤖 RULES.md – CALLSTUDY (Jaroslav Birčák)
 
 ## 🎯 Účel
 Tento dokument definuje **pracovné pravidlá pre Cursor AI** počas vývoja projektu.  

@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
  * Main Spring Boot application entry point
- * Server for Collaborative Study Platform
+ * Server for CALLSTUDY
  */
 @SpringBootApplication
 public class ServerApplication {

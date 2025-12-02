@@ -1,4 +1,4 @@
-# 📘 PRD – Collaborative Study Platform  
+# 📘 PRD – CALLSTUDY  
 **Autor:** Jaroslav Birčák  
 **Predmet:** Semestrálna práca – Klient-server architektúra  
 **Rok:** 2. ročník  
@@ -171,7 +171,7 @@ Vďaka tomu som lepšie pochopil komunikáciu klient-server a prácu s API.
 
 ## 10. Záver
 
-Projekt **Collaborative Study Platform** predstavuje funkčnú ukážku moderného klient-server systému,  
+Projekt **CALLSTUDY** predstavuje funkčnú ukážku moderného klient-server systému,  
 ktorý spája viac technológií – databázu, REST API, real-time komunikáciu a desktopové GUI.  
 
 Pomohol mi pochopiť:

@@ -15,7 +15,7 @@
             <Insets top="30" right="30" bottom="30" left="30"/>
          </padding>
          <children>
-            <Label text="📚 Collaborative Study Platform" styleClass="title-label" style="-fx-font-size: 28px; -fx-text-fill: #667eea;"/>
+            <Label text="📚 CALLSTUDY" styleClass="title-label" style="-fx-font-size: 28px; -fx-text-fill: #667eea;"/>
             <Label text="Welcome! Please sign in or create an account" style="-fx-text-fill: #6c757d; -fx-font-size: 14px;"/>
          </children>
       </VBox>

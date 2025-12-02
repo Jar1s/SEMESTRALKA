@@ -3,7 +3,7 @@
 
 cd "$(dirname "$0")"
 
-echo "Spúšťam Collaborative Study Platform klient..."
+echo "Spúšťam CALLSTUDY klient..."
 echo ""
 
 # Spusti pomocou JavaFX Maven pluginu

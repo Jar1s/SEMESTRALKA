@@ -1,6 +1,6 @@
 # 🚀 Quick Start Guide
 
-Rýchly sprievodca na spustenie Collaborative Study Platform.
+Rýchly sprievodca na spustenie CALLSTUDY.
 
 ## Predpoklady
 

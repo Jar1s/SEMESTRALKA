@@ -1,4 +1,4 @@
-# 📘 Collaborative Study Platform
+# 📘 CALLSTUDY
 
 Platforma na kolaboratívne štúdium - klient-server aplikácia pre študentov.
 

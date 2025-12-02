@@ -42,7 +42,7 @@ public class SceneManager {
             
             // Use same size as initial application start
             Scene scene = new Scene(root);
-            primaryStage.setTitle("Collaborative Study Platform");
+            primaryStage.setTitle("CALLSTUDY");
             primaryStage.setScene(scene);
             primaryStage.setMinWidth(450);
             primaryStage.setMinHeight(550);
