@@ -3,7 +3,6 @@ package sk.ikts.server.dto;
 /**
  * Data Transfer Object for User
  * Used for API communication
- * Added by Cursor AI - DTO for user data transfer
  */
 public class UserDTO {
 

@@ -9,7 +9,6 @@ import sk.ikts.server.dto.NotificationDTO;
 /**
  * Service for sending WebSocket notifications
  * Handles real-time notifications to clients
- * Added by Cursor AI - service for WebSocket notification broadcasting
  */
 @Service
 public class NotificationService {

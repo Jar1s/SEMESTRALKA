@@ -13,7 +13,6 @@ import java.io.IOException;
 /**
  * Utility class for managing scene transitions
  * Handles loading and switching between different views
- * Added by Cursor AI - scene management utility
  */
 public class SceneManager {
 

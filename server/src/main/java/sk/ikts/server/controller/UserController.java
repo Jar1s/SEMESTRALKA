@@ -19,7 +19,6 @@ import java.util.Map;
 /**
  * REST Controller for user operations
  * Handles registration, login, and user management endpoints
- * Added by Cursor AI - REST API controller for user operations
  */
 @RestController
 @RequestMapping("/api/users")

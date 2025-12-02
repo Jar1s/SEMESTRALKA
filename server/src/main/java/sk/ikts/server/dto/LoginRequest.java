@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 
 /**
  * Request DTO for user login
- * Added by Cursor AI - DTO for login requests
  */
 public class LoginRequest {
 

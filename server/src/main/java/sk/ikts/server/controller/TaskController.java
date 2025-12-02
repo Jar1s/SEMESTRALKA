@@ -15,7 +15,6 @@ import java.util.Map;
 /**
  * REST Controller for task operations
  * Handles task CRUD operations and status updates
- * Added by Cursor AI - REST API controller for task operations
  */
 @RestController
 @RequestMapping("/api/tasks")

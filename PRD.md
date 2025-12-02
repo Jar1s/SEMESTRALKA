@@ -156,20 +156,7 @@ Použité budú komponenty `TableView`, `ListView`, `TextField`, `Button`, `Labe
 
 ---
 
-## 9. Práca s AI a získané poznatky
-
-Na vývoj som využíval AI asistenciu (ChatGPT, Cursor).  
-Pomohlo mi to hlavne pri:
-- generovaní štruktúry REST API,  
-- návrhu databázového modelu,  
-- a riešení chýb v Spring Boot konfigurácii.  
-
-Niektoré časti (UI v JavaFX a testovanie WebSocketu) som prispôsobil manuálne.  
-Vďaka tomu som lepšie pochopil komunikáciu klient-server a prácu s API.  
-
----
-
-## 10. Záver
+## 9. Záver
 
 Projekt **CALLSTUDY** predstavuje funkčnú ukážku moderného klient-server systému,  
 ktorý spája viac technológií – databázu, REST API, real-time komunikáciu a desktopové GUI.  
@@ -183,4 +170,4 @@ Projekt by sa dal ďalej rozšíriť o mobilnú aplikáciu alebo integráciu s G
 
 ---
 
-## 11. Štruktúra priečinkov (pre Cursor / GitHub)
+## 10. Štruktúra priečinkov

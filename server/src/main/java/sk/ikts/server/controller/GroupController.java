@@ -16,7 +16,6 @@ import java.util.Map;
 /**
  * REST Controller for group operations
  * Handles group CRUD operations
- * Added by Cursor AI - REST API controller for group operations
  */
 @RestController
 @RequestMapping("/api/groups")

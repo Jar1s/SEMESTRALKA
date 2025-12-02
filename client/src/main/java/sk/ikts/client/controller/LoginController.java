@@ -16,7 +16,6 @@ import java.util.ResourceBundle;
 /**
  * Controller for login/register view
  * Handles user authentication and registration
- * Added by Cursor AI - controller for login/register functionality
  */
 public class LoginController implements Initializable {
 

@@ -233,28 +233,6 @@ Aplikácia je založená na **klient-server architektúre** s trojvrstvovým mod
 
 ---
 
-## 7. Zhodnotenie práce s AI
-
-### Čo AI pomohlo vygenerovať
-- **REST API štruktúra** – Controllers, DTO triedy, Service vrstvy (80% generované)
-- **Databázový model** – JPA entity s anotáciami (90% generované)
-- **WebSocket konfigurácia** – základná implementácia (60% generované)
-- **Validácia** – `@Valid` anotácie, `BCryptPasswordEncoder` (70% generované)
-
-### Čo muselo byť manuálne doladené
-- **JavaFX UI** – FXML layout, CSS štýl, event handling (70% manuálne)
-- **WebSocket klient** – JavaFX integrácia, reconnection logic (40% manuálne)
-- **Deadline Reminders** – timing, deduplikácia (60% manuálne)
-- **Error handling** – edge cases, null kontroly (60% manuálne)
-- **API Client** – robustnosť, error handling (50% manuálne)
-
-### Čo som sa naučil
-**Pozitíva:** Rýchle prototypovanie, best practices, konzistentnosť kódu.  
-**Obmedzenia:** Problémy s JavaFX FXML, threading, integrácia komponentov, edge cases.  
-**Praktiky:** Iteratívny prístup (AI základ → manuálne doladenie), kontrola a testovanie kódu, dokumentácia AI-generovaných častí.
-
-**Záver:** AI bolo užitočné pre základnú štruktúru, ale manuálne doladenie bolo nevyhnutné pre funkčnosť a bezpečnosť.
-
 ---
 
 ## 8. Technológie
@@ -309,7 +287,6 @@ cd server && mvn clean test jacoco:report
 ## 11. Dokumentácia
 
 - [PRD.md](PRD.md) - Product Requirements Document
-- [RULES.md](RULES.md) - Pravidlá pre prácu s AI
 - [QUICKSTART.md](QUICKSTART.md) - Rýchly sprievodca
 - [NOTIFICATIONS_AND_CHAT.md](NOTIFICATIONS_AND_CHAT.md) - Notifikácie a chat
 - [TESTING.md](TESTING.md) - Testovanie

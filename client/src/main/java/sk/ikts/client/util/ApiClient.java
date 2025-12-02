@@ -20,7 +20,6 @@ import java.util.concurrent.TimeUnit;
 /**
  * HTTP client utility for REST API communication
  * Handles all API requests to the server
- * Added by Cursor AI - HTTP client for REST API calls
  */
 public class ApiClient {
 

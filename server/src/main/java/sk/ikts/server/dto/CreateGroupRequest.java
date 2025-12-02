@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 
 /**
  * Request DTO for creating a group
- * Added by Cursor AI - DTO for group creation requests
  */
 public class CreateGroupRequest {
 

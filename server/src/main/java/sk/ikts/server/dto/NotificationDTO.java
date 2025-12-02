@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 /**
  * Data Transfer Object for notifications
  * Used for WebSocket real-time notifications
- * Added by Cursor AI - DTO for WebSocket notifications
  */
 public class NotificationDTO {
 

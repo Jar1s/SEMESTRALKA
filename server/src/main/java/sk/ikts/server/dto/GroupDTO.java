@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 
 /**
  * Data Transfer Object for Group
- * Added by Cursor AI - DTO for group data transfer
  */
 public class GroupDTO {
 

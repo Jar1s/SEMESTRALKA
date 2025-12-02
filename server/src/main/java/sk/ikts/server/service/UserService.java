@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 /**
  * Service for user management operations
  * Handles registration, login, and user operations
- * Added by Cursor AI - service layer for user business logic
  */
 @Service
 public class UserService {

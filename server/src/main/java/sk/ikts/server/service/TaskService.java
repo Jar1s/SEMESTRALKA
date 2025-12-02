@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 /**
  * Service for task management operations
  * Handles task creation, retrieval, and status updates
- * Added by Cursor AI - service layer for task business logic
  */
 @Service
 public class TaskService {

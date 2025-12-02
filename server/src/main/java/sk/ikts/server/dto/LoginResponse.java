@@ -3,7 +3,6 @@ package sk.ikts.server.dto;
 /**
  * Response DTO for login
  * Contains user information and authentication token (if implemented)
- * Added by Cursor AI - DTO for login responses
  */
 public class LoginResponse {
 

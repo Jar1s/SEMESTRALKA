@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Size;
 
 /**
  * Request DTO for user registration
- * Added by Cursor AI - DTO for registration requests
  */
 public class RegisterRequest {
 

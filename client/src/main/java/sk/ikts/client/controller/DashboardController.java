@@ -44,7 +44,6 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Controller for the main dashboard view
  * Handles groups, tasks, statistics, and notifications
- * Added by Cursor AI - main dashboard controller
  */
 public class DashboardController implements Initializable {
 

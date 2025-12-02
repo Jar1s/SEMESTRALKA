@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 
 /**
  * Request DTO for updating a task
- * Added by Cursor AI - DTO for task update requests
  */
 public class UpdateTaskRequest {
 

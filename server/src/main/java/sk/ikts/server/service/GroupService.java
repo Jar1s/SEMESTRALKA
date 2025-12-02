@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 /**
  * Service for group management operations
  * Handles group creation, retrieval, and membership management
- * Added by Cursor AI - service layer for group business logic
  */
 @Service
 public class GroupService {

@@ -9,7 +9,6 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 /**
  * WebSocket configuration for real-time notifications
  * Configures STOMP messaging protocol
- * Added by Cursor AI - WebSocket configuration for real-time communication
  */
 @Configuration
 @EnableWebSocketMessageBroker

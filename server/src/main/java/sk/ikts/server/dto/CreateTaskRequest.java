@@ -7,7 +7,6 @@ import java.time.LocalDateTime;
 
 /**
  * Request DTO for creating a task
- * Added by Cursor AI - DTO for task creation requests
  */
 public class CreateTaskRequest {
 

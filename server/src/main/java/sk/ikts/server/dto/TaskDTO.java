@@ -6,7 +6,6 @@ import java.time.LocalDateTime;
 
 /**
  * Data Transfer Object for Task
- * Added by Cursor AI - DTO for task data transfer
  */
 public class TaskDTO {
 
