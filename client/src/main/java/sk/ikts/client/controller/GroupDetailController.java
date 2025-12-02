@@ -148,7 +148,33 @@ public class GroupDetailController implements Initializable {
             taskTitleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
         }
         if (taskStatusColumn != null) {
-            taskStatusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
+            taskStatusColumn.setCellFactory(column -> new TableCell<Task, String>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || getTableRow().getItem() == null) {
+                        setText(null);
+                        setStyle("");
+                    } else {
+                        Task task = getTableRow().getItem();
+                        String statusText = task.getStatus().toString();
+                        setText(statusText);
+                        
+                        // Style based on status
+                        switch (task.getStatus()) {
+                            case DONE:
+                                setStyle("-fx-text-fill: #000000; -fx-font-weight: bold; -fx-font-size: 12px;");
+                                break;
+                            case IN_PROGRESS:
+                                setStyle("-fx-text-fill: #000000; -fx-font-weight: bold; -fx-font-size: 12px;");
+                                break;
+                            case OPEN:
+                                setStyle("-fx-text-fill: #6c757d; -fx-font-size: 12px;");
+                                break;
+                        }
+                    }
+                }
+            });
         }
         if (taskDeadlineColumn != null) {
             taskDeadlineColumn.setCellFactory(column -> new TableCell<Task, String>() {
@@ -157,10 +183,44 @@ public class GroupDetailController implements Initializable {
                     super.updateItem(item, empty);
                     if (empty || getTableRow().getItem() == null) {
                         setText(null);
+                        setStyle("");
                     } else {
                         Task task = getTableRow().getItem();
-                        setText(task.getDeadline() != null ? 
-                            task.getDeadline().format(dateFormatter) : "No deadline");
+                        if (task.getDeadline() != null) {
+                            LocalDateTime deadline = task.getDeadline();
+                            LocalDateTime now = LocalDateTime.now();
+                            
+                            // Format deadline text - shorter format
+                            String deadlineText = deadline.format(DateTimeFormatter.ofPattern("MM/dd HH:mm"));
+                            
+                            // Calculate time remaining
+                            long hoursUntil = java.time.temporal.ChronoUnit.HOURS.between(now, deadline);
+                            long minutesUntil = java.time.temporal.ChronoUnit.MINUTES.between(now, deadline);
+                            
+                            // Set text and style based on urgency
+                            if (task.getStatus() == Task.TaskStatus.DONE) {
+                                setText(deadlineText);
+                                setStyle("-fx-text-fill: #6c757d; -fx-font-size: 12px;"); // Gray for completed tasks
+                            } else if (deadline.isBefore(now)) {
+                                setText(deadlineText);
+                                setStyle("-fx-text-fill: #000000; -fx-font-weight: bold; -fx-font-size: 12px;"); // Black for overdue
+                            } else if (minutesUntil <= 60) {
+                                setText(deadlineText);
+                                setStyle("-fx-text-fill: #000000; -fx-font-weight: bold; -fx-font-size: 12px;"); // Black for urgent
+                            } else if (hoursUntil <= 6) {
+                                setText(deadlineText);
+                                setStyle("-fx-text-fill: #000000; -fx-font-weight: bold; -fx-font-size: 12px;"); // Black for warning
+                            } else if (hoursUntil <= 24) {
+                                setText(deadlineText);
+                                setStyle("-fx-text-fill: #000000; -fx-font-size: 12px;"); // Black for reminder
+                            } else {
+                                setText(deadlineText);
+                                setStyle("-fx-text-fill: #2c3e50; -fx-font-size: 12px;"); // Default color
+                            }
+                        } else {
+                            setText("-");
+                            setStyle("-fx-text-fill: #6c757d; -fx-font-size: 12px;");
+                        }
                     }
                 }
             });
@@ -174,13 +234,36 @@ public class GroupDetailController implements Initializable {
                         setGraphic(null);
                     } else {
                         Task task = getTableRow().getItem();
-                        HBox hbox = new HBox(5);
+                        HBox hbox = new HBox(4);
+                        hbox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                        
+                        // Smaller Edit button
                         Button editButton = new Button("Edit");
+                        editButton.setStyle(
+                            "-fx-background-color: #000000; " +
+                            "-fx-text-fill: white; " +
+                            "-fx-font-size: 11px; " +
+                            "-fx-padding: 4px 8px; " +
+                            "-fx-background-radius: 4px; " +
+                            "-fx-cursor: hand;"
+                        );
                         editButton.setOnAction(e -> showEditTaskDialog(task));
+                        
+                        // Smaller ComboBox
                         ComboBox<Task.TaskStatus> statusCombo = new ComboBox<>(
                                 FXCollections.observableArrayList(Task.TaskStatus.values()));
                         statusCombo.setValue(task.getStatus());
+                        statusCombo.setStyle(
+                            "-fx-background-color: white; " +
+                            "-fx-border-color: #ced4da; " +
+                            "-fx-border-radius: 4px; " +
+                            "-fx-background-radius: 4px; " +
+                            "-fx-padding: 2px 6px; " +
+                            "-fx-font-size: 11px; " +
+                            "-fx-pref-width: 100px;"
+                        );
                         statusCombo.setOnAction(e -> updateTaskStatus(task.getTaskId(), statusCombo.getValue()));
+                        
                         hbox.getChildren().addAll(editButton, statusCombo);
                         setGraphic(hbox);
                     }
@@ -244,7 +327,7 @@ public class GroupDetailController implements Initializable {
                             hbox.getChildren().add(openButton);
                         }
                         Button deleteButton = new Button("Delete");
-                        deleteButton.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white;");
+                        deleteButton.setStyle("-fx-background-color: #000000; -fx-text-fill: white;");
                         deleteButton.setOnAction(e -> GroupDetailController.this.deleteResource(resource));
                         hbox.getChildren().add(deleteButton);
                         setGraphic(hbox);
@@ -305,7 +388,7 @@ public class GroupDetailController implements Initializable {
                 e.printStackTrace();
                 Platform.runLater(() -> {
                     Label errorLabel = new Label("Error loading messages: " + e.getMessage());
-                    errorLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #f5576c; -fx-padding: 10;");
+                    errorLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #000000; -fx-padding: 10;");
                     chatMessagesBox.getChildren().add(errorLabel);
                 });
             }
@@ -353,9 +436,9 @@ public class GroupDetailController implements Initializable {
             // Style for message bubble
             if (isMyMessage) {
                 messageBubble.setStyle(
-                    "-fx-background-color: linear-gradient(to right, #667eea 0%, #764ba2 100%); " +
+                    "-fx-background-color: #000000; " +
                     "-fx-background-radius: 18px 18px 4px 18px; " +
-                    "-fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.3), 5, 0, 0, 2);"
+                    "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 5, 0, 0, 2);"
                 );
             } else {
                 messageBubble.setStyle(
@@ -376,7 +459,7 @@ public class GroupDetailController implements Initializable {
             nameLabel.setStyle(
                 "-fx-font-size: 13px; " +
                 "-fx-font-weight: bold; " +
-                (isMyMessage ? "-fx-text-fill: rgba(255, 255, 255, 0.9);" : "-fx-text-fill: #667eea;")
+                (isMyMessage ? "-fx-text-fill: rgba(255, 255, 255, 0.9);" : "-fx-text-fill: #000000;")
             );
             
             if (message.getSentAt() != null) {
@@ -568,13 +651,21 @@ public class GroupDetailController implements Initializable {
         TextArea descriptionArea = new TextArea();
         descriptionArea.setPromptText("Description");
         descriptionArea.setPrefRowCount(3);
-        DatePicker deadlinePicker = new DatePicker();
+        DatePicker deadlineDatePicker = new DatePicker();
+        TextField deadlineTimeField = new TextField();
+        deadlineTimeField.setPromptText("HH:mm (e.g., 14:30)");
+        deadlineTimeField.setMaxWidth(100);
+        
+        // Create HBox for date and time
+        HBox deadlineBox = new HBox(10);
+        deadlineBox.getChildren().addAll(deadlineDatePicker, new Label("at"), deadlineTimeField);
+        deadlineBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
         javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(10);
         content.getChildren().addAll(
                 new Label("Title:"), titleField,
                 new Label("Description:"), descriptionArea,
-                new Label("Deadline (optional):"), deadlinePicker);
+                new Label("Deadline (optional):"), deadlineBox);
         dialog.getDialogPane().setContent(content);
 
         ButtonType createButtonType = new ButtonType("Create", ButtonBar.ButtonData.OK_DONE);
@@ -585,8 +676,25 @@ public class GroupDetailController implements Initializable {
                 Map<String, Object> result = new HashMap<>();
                 result.put("title", titleField.getText().trim());
                 result.put("description", descriptionArea.getText().trim());
-                result.put("deadline", deadlinePicker.getValue() != null ? 
-                    deadlinePicker.getValue().atStartOfDay() : null);
+                
+                // Parse deadline with date and time
+                LocalDateTime deadline = null;
+                if (deadlineDatePicker.getValue() != null) {
+                    if (deadlineTimeField.getText().trim().isEmpty()) {
+                        deadline = deadlineDatePicker.getValue().atStartOfDay();
+                    } else {
+                        try {
+                            String[] timeParts = deadlineTimeField.getText().trim().split(":");
+                            int hour = Integer.parseInt(timeParts[0]);
+                            int minute = timeParts.length > 1 ? Integer.parseInt(timeParts[1]) : 0;
+                            deadline = deadlineDatePicker.getValue().atTime(hour, minute);
+                        } catch (Exception e) {
+                            // Invalid time format, use start of day
+                            deadline = deadlineDatePicker.getValue().atStartOfDay();
+                        }
+                    }
+                }
+                result.put("deadline", deadline);
                 return result;
             }
             return null;
@@ -865,20 +973,33 @@ public class GroupDetailController implements Initializable {
         TextField titleField = new TextField(task.getTitle());
         TextArea descriptionArea = new TextArea(task.getDescription() != null ? task.getDescription() : "");
         descriptionArea.setPrefRowCount(3);
-        DatePicker deadlinePicker = new DatePicker();
+        DatePicker deadlineDatePicker = new DatePicker();
+        TextField deadlineTimeField = new TextField();
+        deadlineTimeField.setPromptText("HH:mm (e.g., 14:30)");
+        deadlineTimeField.setMaxWidth(100);
+        
         if (task.getDeadline() != null) {
-            deadlinePicker.setValue(task.getDeadline().toLocalDate());
+            deadlineDatePicker.setValue(task.getDeadline().toLocalDate());
+            deadlineTimeField.setText(String.format("%02d:%02d", 
+                task.getDeadline().getHour(), 
+                task.getDeadline().getMinute()));
         }
+        
         ComboBox<Task.TaskStatus> statusCombo = new ComboBox<>(
                 FXCollections.observableArrayList(Task.TaskStatus.values()));
         statusCombo.setValue(task.getStatus());
+
+        // Create HBox for date and time
+        HBox deadlineBox = new HBox(10);
+        deadlineBox.getChildren().addAll(deadlineDatePicker, new Label("at"), deadlineTimeField);
+        deadlineBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
         javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(10);
         content.getChildren().addAll(
                 new Label("Title:"), titleField,
                 new Label("Description:"), descriptionArea,
                 new Label("Status:"), statusCombo,
-                new Label("Deadline (optional):"), deadlinePicker);
+                new Label("Deadline (optional):"), deadlineBox);
         dialog.getDialogPane().setContent(content);
 
         ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
@@ -890,8 +1011,25 @@ public class GroupDetailController implements Initializable {
                 result.put("title", titleField.getText().trim());
                 result.put("description", descriptionArea.getText().trim());
                 result.put("status", statusCombo.getValue().name());
-                result.put("deadline", deadlinePicker.getValue() != null ? 
-                    deadlinePicker.getValue().atStartOfDay() : null);
+                
+                // Parse deadline with date and time
+                LocalDateTime deadline = null;
+                if (deadlineDatePicker.getValue() != null) {
+                    if (deadlineTimeField.getText().trim().isEmpty()) {
+                        deadline = deadlineDatePicker.getValue().atStartOfDay();
+                    } else {
+                        try {
+                            String[] timeParts = deadlineTimeField.getText().trim().split(":");
+                            int hour = Integer.parseInt(timeParts[0]);
+                            int minute = timeParts.length > 1 ? Integer.parseInt(timeParts[1]) : 0;
+                            deadline = deadlineDatePicker.getValue().atTime(hour, minute);
+                        } catch (Exception e) {
+                            // Invalid time format, use start of day
+                            deadline = deadlineDatePicker.getValue().atStartOfDay();
+                        }
+                    }
+                }
+                result.put("deadline", deadline);
                 return result;
             }
             return null;

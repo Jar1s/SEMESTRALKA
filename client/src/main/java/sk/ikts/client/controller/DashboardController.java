@@ -22,10 +22,8 @@ import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import sk.ikts.client.model.Group;
-import sk.ikts.client.model.Notification;
 import sk.ikts.client.model.Task;
 import sk.ikts.client.model.User;
-import sk.ikts.client.controller.GroupDetailController;
 import sk.ikts.client.util.ApiClient;
 import sk.ikts.client.util.NotificationManager;
 import sk.ikts.client.util.NotificationWebSocketClient;
@@ -36,6 +34,7 @@ import java.lang.reflect.Type;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,9 +52,10 @@ public class DashboardController implements Initializable {
     private final Gson gson = ApiClient.getGson();
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     
-    private ObservableList<Group> groupsList = FXCollections.observableArrayList();
+    private ObservableList<Group> allGroupsList = FXCollections.observableArrayList();
+    private ObservableList<Group> myGroupsList = FXCollections.observableArrayList();
     private ObservableList<Task> tasksList = FXCollections.observableArrayList();
-    private List<Group> allGroups = List.of();
+    private List<Group> allGroups = List.of(); // For filtering tasks
     
     private NotificationWebSocketClient webSocketClient;
 
@@ -65,12 +65,22 @@ public class DashboardController implements Initializable {
     @FXML private Button profileButton;
     @FXML private TabPane mainTabPane;
     
-    // Groups Tab
-    @FXML private TableView<Group> groupsTable;
-    @FXML private TableColumn<Group, String> groupNameColumn;
-    @FXML private TableColumn<Group, String> groupDescriptionColumn;
-    @FXML private TableColumn<Group, String> groupCreatedColumn;
-    @FXML private TableColumn<Group, String> groupActionsColumn;
+    // All Groups Tab
+    @FXML private TableView<Group> allGroupsTable;
+    @FXML private TableColumn<Group, String> allGroupNameColumn;
+    @FXML private TableColumn<Group, String> allGroupDescriptionColumn;
+    @FXML private TableColumn<Group, String> allGroupOwnerColumn;
+    @FXML private TableColumn<Group, String> allGroupCreatedColumn;
+    @FXML private TableColumn<Group, String> allGroupActionsColumn;
+    
+    // My Groups Tab
+    @FXML private TableView<Group> myGroupsTable;
+    @FXML private TableColumn<Group, String> myGroupNameColumn;
+    @FXML private TableColumn<Group, String> myGroupDescriptionColumn;
+    @FXML private TableColumn<Group, String> myGroupOwnerColumn;
+    @FXML private TableColumn<Group, String> myGroupCreatedColumn;
+    @FXML private TableColumn<Group, String> myGroupActionsColumn;
+    
     @FXML private Button createGroupButton;
     
     // Tasks Tab
@@ -123,7 +133,6 @@ public class DashboardController implements Initializable {
         }
         
         // Setup tables
-        setupGroupsTable();
         setupTasksTable();
         setupUsersTable();
         
@@ -143,6 +152,10 @@ public class DashboardController implements Initializable {
         
         // Initialize charts
         initializeCharts();
+        
+        // Setup groups tables
+        setupAllGroupsTable();
+        setupMyGroupsTable();
     }
     
     private void initializeCharts() {
@@ -216,17 +229,20 @@ public class DashboardController implements Initializable {
         });
     }
     
-    private void setupGroupsTable() {
-        if (groupsTable == null) return;
+    private void setupAllGroupsTable() {
+        if (allGroupsTable == null) return;
         
-        if (groupNameColumn != null) {
-            groupNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+        if (allGroupNameColumn != null) {
+            allGroupNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
         }
-        if (groupDescriptionColumn != null) {
-            groupDescriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
+        if (allGroupDescriptionColumn != null) {
+            allGroupDescriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
         }
-        if (groupCreatedColumn != null) {
-            groupCreatedColumn.setCellFactory(column -> new TableCell<Group, String>() {
+        if (allGroupOwnerColumn != null) {
+            allGroupOwnerColumn.setCellValueFactory(new PropertyValueFactory<>("ownerName"));
+        }
+        if (allGroupCreatedColumn != null) {
+            allGroupCreatedColumn.setCellFactory(column -> new TableCell<Group, String>() {
                 @Override
                 protected void updateItem(String item, boolean empty) {
                     super.updateItem(item, empty);
@@ -243,8 +259,8 @@ public class DashboardController implements Initializable {
                 }
             });
         }
-        if (groupActionsColumn != null) {
-            groupActionsColumn.setCellFactory(column -> new TableCell<Group, String>() {
+        if (allGroupActionsColumn != null) {
+            allGroupActionsColumn.setCellFactory(column -> new TableCell<Group, String>() {
                 @Override
                 protected void updateItem(String item, boolean empty) {
                     super.updateItem(item, empty);
@@ -255,21 +271,110 @@ public class DashboardController implements Initializable {
                         HBox hbox = new HBox(5);
                         Button viewButton = new Button("View");
                         viewButton.setOnAction(e -> DashboardController.this.viewGroupDetails(group));
-                        Button editButton = new Button("Edit");
-                        editButton.setOnAction(e -> DashboardController.this.showEditGroupDialog(group));
-                        Button deleteButton = new Button("Delete");
-                        deleteButton.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white;");
-                        deleteButton.setOnAction(e -> DashboardController.this.deleteGroup(group));
-                        hbox.getChildren().addAll(viewButton, editButton, deleteButton);
+                        
+                        // Check if user is already a member
+                        List<Group> myGroupsCopy = new ArrayList<>(myGroupsList);
+                        boolean isMember = myGroupsCopy.stream()
+                                .anyMatch(g -> g.getGroupId().equals(group.getGroupId()));
+                        
+                        if (!isMember) {
+                            Button joinButton = new Button("Join");
+                            joinButton.setStyle("-fx-background-color: #000000; -fx-text-fill: white;");
+                            joinButton.setOnAction(e -> DashboardController.this.handleJoinGroup(group));
+                            hbox.getChildren().addAll(viewButton, joinButton);
+                        } else {
+                            hbox.getChildren().add(viewButton);
+                        }
                         setGraphic(hbox);
                     }
                 }
             });
         }
-        if (groupsTable != null) {
-            groupsTable.setItems(groupsList);
+        if (allGroupsTable != null) {
+            allGroupsTable.setItems(allGroupsList);
             // Add double-click to view group details
-            groupsTable.setRowFactory(tv -> {
+            allGroupsTable.setRowFactory(tv -> {
+                TableRow<Group> row = new TableRow<>();
+                row.setOnMouseClicked(event -> {
+                    if (event.getClickCount() == 2 && !row.isEmpty()) {
+                        Group group = row.getItem();
+                        viewGroupDetails(group);
+                    }
+                });
+                return row;
+            });
+        }
+    }
+    
+    private void setupMyGroupsTable() {
+        if (myGroupsTable == null) return;
+        
+        if (myGroupNameColumn != null) {
+            myGroupNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+        }
+        if (myGroupDescriptionColumn != null) {
+            myGroupDescriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
+        }
+        if (myGroupOwnerColumn != null) {
+            myGroupOwnerColumn.setCellValueFactory(new PropertyValueFactory<>("ownerName"));
+        }
+        if (myGroupCreatedColumn != null) {
+            myGroupCreatedColumn.setCellFactory(column -> new TableCell<Group, String>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || getTableRow().getItem() == null) {
+                        setText(null);
+                    } else {
+                        Group group = getTableRow().getItem();
+                        if (group.getCreatedAt() != null) {
+                            setText(group.getCreatedAt().format(dateFormatter));
+                        } else {
+                            setText("N/A");
+                        }
+                    }
+                }
+            });
+        }
+        if (myGroupActionsColumn != null) {
+            myGroupActionsColumn.setCellFactory(column -> new TableCell<Group, String>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || getTableRow().getItem() == null) {
+                        setGraphic(null);
+                    } else {
+                        Group group = getTableRow().getItem();
+                        HBox hbox = new HBox(5);
+                        Button viewButton = new Button("View");
+                        viewButton.setOnAction(e -> DashboardController.this.viewGroupDetails(group));
+                        
+                        // Check if user is owner
+                        boolean isOwner = userId != null && group.getCreatedBy() != null && 
+                                        group.getCreatedBy().equals(userId);
+                        
+                        if (isOwner) {
+                            Button editButton = new Button("Edit");
+                            editButton.setOnAction(e -> DashboardController.this.showEditGroupDialog(group));
+                            Button deleteButton = new Button("Delete");
+                            deleteButton.setStyle("-fx-background-color: #000000; -fx-text-fill: white;");
+                            deleteButton.setOnAction(e -> DashboardController.this.deleteGroup(group));
+                            hbox.getChildren().addAll(viewButton, editButton, deleteButton);
+                        } else {
+                            Button leaveButton = new Button("Leave");
+                            leaveButton.setStyle("-fx-background-color: #000000; -fx-text-fill: white;");
+                            leaveButton.setOnAction(e -> DashboardController.this.handleLeaveGroup(group));
+                            hbox.getChildren().addAll(viewButton, leaveButton);
+                        }
+                        setGraphic(hbox);
+                    }
+                }
+            });
+        }
+        if (myGroupsTable != null) {
+            myGroupsTable.setItems(myGroupsList);
+            // Add double-click to view group details
+            myGroupsTable.setRowFactory(tv -> {
                 TableRow<Group> row = new TableRow<>();
                 row.setOnMouseClicked(event -> {
                     if (event.getClickCount() == 2 && !row.isEmpty()) {
@@ -394,19 +499,33 @@ public class DashboardController implements Initializable {
                     statusLabel.setText("🔔 " + notification.getMessage());
                 }
                 
+                String notificationType = notification.getType();
+                
                 // Refresh data based on notification type
-                if ("NEW_TASK".equals(notification.getType()) || 
-                    "TASK_STATUS_CHANGED".equals(notification.getType())) {
+                if ("NEW_TASK".equals(notificationType) || 
+                    "TASK_STATUS_CHANGED".equals(notificationType) ||
+                    "DEADLINE_URGENT".equals(notificationType) ||
+                    "DEADLINE_WARNING".equals(notificationType) ||
+                    "DEADLINE_REMINDER".equals(notificationType) ||
+                    "DEADLINE_OVERDUE".equals(notificationType)) {
                     loadTasks();
                     updateStatistics();
-                } else if ("NEW_GROUP".equals(notification.getType()) || 
-                          "NEW_MEMBER".equals(notification.getType())) {
-                    loadGroups();
+                } else if ("NEW_GROUP".equals(notificationType) || 
+                          "NEW_MEMBER".equals(notificationType)) {
+                    loadAllGroups();
+                    loadMyGroups();
                     updateStatistics();
                 }
                 
-                // Show toast notification instead of alert
-                NotificationManager.showInfo(notification.getMessage());
+                // Show toast notification with appropriate type
+                if ("DEADLINE_URGENT".equals(notificationType) || 
+                    "DEADLINE_OVERDUE".equals(notificationType)) {
+                    NotificationManager.showError(notification.getMessage());
+                } else if ("DEADLINE_WARNING".equals(notificationType)) {
+                    NotificationManager.showWarning(notification.getMessage());
+                } else {
+                    NotificationManager.showInfo(notification.getMessage());
+                }
             });
         });
     }
@@ -427,14 +546,16 @@ public class DashboardController implements Initializable {
         }
 
         // Load groups, tasks, and users in parallel
-        CompletableFuture<Void> groupsFuture = loadGroups();
+        CompletableFuture<Void> allGroupsFuture = loadAllGroups();
+        CompletableFuture<Void> myGroupsFuture = loadMyGroups();
         CompletableFuture<Void> tasksFuture = loadTasks();
         loadUsers(); // Load users
 
-        CompletableFuture.allOf(groupsFuture, tasksFuture).thenRun(() -> {
+        CompletableFuture.allOf(allGroupsFuture, myGroupsFuture, tasksFuture).thenRun(() -> {
             Platform.runLater(() -> {
                 if (statusLabel != null) {
-                    statusLabel.setText("Dashboard loaded. Groups: " + groupsList.size() + 
+                    statusLabel.setText("Dashboard loaded. All Groups: " + allGroupsList.size() + 
+                                      ", My Groups: " + myGroupsList.size() + 
                                       ", Tasks: " + tasksList.size());
                 }
                 updateStatistics();
@@ -444,23 +565,23 @@ public class DashboardController implements Initializable {
     }
 
     /**
-     * Load groups from API - loads ALL groups regardless of creator
+     * Load all groups from API - loads ALL groups regardless of creator
      */
-    private CompletableFuture<Void> loadGroups() {
+    private CompletableFuture<Void> loadAllGroups() {
         return CompletableFuture.runAsync(() -> {
             try {
                 String response = ApiClient.get("/groups");
                 Type listType = new TypeToken<List<Group>>(){}.getType();
                 List<Group> groups = gson.fromJson(response, listType);
                 
-                System.out.println("Loaded " + (groups != null ? groups.size() : 0) + " groups from API");
+                System.out.println("Loaded " + (groups != null ? groups.size() : 0) + " all groups from API");
                 
                 Platform.runLater(() -> {
-                    groupsList.clear();
+                    allGroupsList.clear();
                     if (groups != null && !groups.isEmpty()) {
-                        groupsList.addAll(groups);
+                        allGroupsList.addAll(groups);
                         allGroups = groups;
-                        System.out.println("Added " + groups.size() + " groups to UI");
+                        System.out.println("Added " + groups.size() + " groups to All Groups table");
                         updateGroupFilter();
                     } else {
                         System.out.println("No groups found or groups list is null");
@@ -469,10 +590,47 @@ public class DashboardController implements Initializable {
             } catch (Exception e) {
                 Platform.runLater(() -> {
                     if (statusLabel != null) {
-                        statusLabel.setText("Error loading groups: " + e.getMessage());
+                        statusLabel.setText("Error loading all groups: " + e.getMessage());
                     }
                 });
-                System.err.println("Error loading groups: " + e.getMessage());
+                System.err.println("Error loading all groups: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+    }
+    
+    /**
+     * Load my groups from API - loads only groups where user is a member
+     */
+    private CompletableFuture<Void> loadMyGroups() {
+        if (userId == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        
+        return CompletableFuture.runAsync(() -> {
+            try {
+                String response = ApiClient.get("/groups/user/" + userId);
+                Type listType = new TypeToken<List<Group>>(){}.getType();
+                List<Group> groups = gson.fromJson(response, listType);
+                
+                System.out.println("Loaded " + (groups != null ? groups.size() : 0) + " my groups from API");
+                
+                Platform.runLater(() -> {
+                    myGroupsList.clear();
+                    if (groups != null && !groups.isEmpty()) {
+                        myGroupsList.addAll(groups);
+                        System.out.println("Added " + groups.size() + " groups to My Groups table");
+                    } else {
+                        System.out.println("No my groups found");
+                    }
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    if (statusLabel != null) {
+                        statusLabel.setText("Error loading my groups: " + e.getMessage());
+                    }
+                });
+                System.err.println("Error loading my groups: " + e.getMessage());
                 e.printStackTrace();
             }
         });
@@ -657,9 +815,10 @@ public class DashboardController implements Initializable {
                 
                 Platform.runLater(() -> {
                     if (newGroup != null) {
-                        groupsList.add(newGroup);
-                        allGroups = List.copyOf(groupsList);
-                        loadData(); // Refresh all data
+                        // Reload both lists to get updated data with owner names
+                        loadAllGroups();
+                        loadMyGroups();
+                        NotificationManager.showSuccess("Group created successfully!");
                     }
                 });
             } catch (Exception e) {
@@ -743,14 +902,17 @@ public class DashboardController implements Initializable {
      */
     public Map<String, Integer> getStatistics() {
         Map<String, Integer> stats = new HashMap<>();
-        stats.put("totalGroups", groupsList.size());
+        stats.put("totalGroups", myGroupsList.size());
         stats.put("totalTasks", tasksList.size());
         
-        long openTasks = tasksList.stream()
+        // Create a copy of the list to avoid ConcurrentModificationException
+        List<Task> tasksCopy = new ArrayList<>(tasksList);
+        
+        long openTasks = tasksCopy.stream()
                 .filter(t -> t.getStatus() == Task.TaskStatus.OPEN || 
                             t.getStatus() == Task.TaskStatus.IN_PROGRESS)
                 .count();
-        long doneTasks = tasksList.stream()
+        long doneTasks = tasksCopy.stream()
                 .filter(t -> t.getStatus() == Task.TaskStatus.DONE)
                 .count();
         
@@ -761,10 +923,10 @@ public class DashboardController implements Initializable {
     }
 
     /**
-     * Get groups list
+     * Get groups list (for compatibility)
      */
     public ObservableList<Group> getGroups() {
-        return groupsList;
+        return myGroupsList;
     }
 
     /**
@@ -994,7 +1156,13 @@ public class DashboardController implements Initializable {
             controller.setGroup(group);
             controller.setUserId(userId);
             
-            Stage stage = (Stage) groupsTable.getScene().getWindow();
+            Stage stage = (Stage) (allGroupsTable != null && allGroupsTable.getScene() != null ? 
+                    allGroupsTable.getScene().getWindow() : 
+                    (myGroupsTable != null && myGroupsTable.getScene() != null ? 
+                     myGroupsTable.getScene().getWindow() : null));
+            if (stage == null) {
+                stage = (Stage) mainTabPane.getScene().getWindow();
+            }
             stage.setScene(new Scene(root, 1000, 700));
         } catch (Exception e) {
             e.printStackTrace();
@@ -1005,6 +1173,16 @@ public class DashboardController implements Initializable {
     }
 
     private void showEditGroupDialog(Group group) {
+        // Check if user is the owner
+        if (userId == null || group.getCreatedBy() == null || !group.getCreatedBy().equals(userId)) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Access Denied");
+            alert.setHeaderText("Cannot edit group");
+            alert.setContentText("Only the group owner can edit the group.");
+            alert.showAndWait();
+            return;
+        }
+        
         Dialog<Map<String, String>> dialog = new Dialog<>();
         dialog.setTitle("Edit Group");
         dialog.setHeaderText("Edit group information");
@@ -1058,17 +1236,26 @@ public class DashboardController implements Initializable {
                 
                 Platform.runLater(() -> {
                     if (updatedGroup != null) {
-                        // Update group in list
-                        for (int i = 0; i < groupsList.size(); i++) {
-                            if (groupsList.get(i).getGroupId().equals(groupId)) {
-                                groupsList.set(i, updatedGroup);
-                                allGroups = List.copyOf(groupsList);
+                        // Update group in all groups list
+                        for (int i = 0; i < allGroupsList.size(); i++) {
+                            if (allGroupsList.get(i).getGroupId().equals(groupId)) {
+                                allGroupsList.set(i, updatedGroup);
                                 break;
                             }
                         }
+                        // Update group in my groups list
+                        for (int i = 0; i < myGroupsList.size(); i++) {
+                            if (myGroupsList.get(i).getGroupId().equals(groupId)) {
+                                myGroupsList.set(i, updatedGroup);
+                                break;
+                            }
+                        }
+                        allGroups = List.copyOf(allGroupsList);
                         updateStatistics();
                         updateGroupFilter();
-                        new Alert(Alert.AlertType.INFORMATION, "Group updated successfully!").show();
+                        NotificationManager.showSuccess("Group updated successfully!");
+                    } else {
+                        NotificationManager.showError("Failed to update group. Only the owner can edit.");
                     }
                 });
             } catch (Exception e) {
@@ -1076,6 +1263,71 @@ public class DashboardController implements Initializable {
                     showError("Failed to update group: " + e.getMessage());
                 });
                 e.printStackTrace();
+            }
+        });
+    }
+
+    private void handleJoinGroup(Group group) {
+        if (userId == null) {
+            showError("User ID not available");
+            return;
+        }
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                Map<String, Long> request = new HashMap<>();
+                request.put("userId", userId);
+                
+                ApiClient.post("/groups/" + group.getGroupId() + "/join", request);
+                
+                Platform.runLater(() -> {
+                    // Reload both lists
+                    loadAllGroups();
+                    loadMyGroups();
+                    NotificationManager.showSuccess("Successfully joined group: " + group.getName());
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    showError("Failed to join group: " + e.getMessage());
+                });
+                e.printStackTrace();
+            }
+        });
+    }
+    
+    private void handleLeaveGroup(Group group) {
+        if (userId == null) {
+            showError("User ID not available");
+            return;
+        }
+        
+        Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmAlert.setTitle("Leave Group");
+        confirmAlert.setHeaderText("Are you sure you want to leave this group?");
+        confirmAlert.setContentText("Group: " + group.getName());
+
+        confirmAlert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        Map<String, Long> request = new HashMap<>();
+                        request.put("userId", userId);
+                        
+                        ApiClient.delete("/groups/" + group.getGroupId() + "/leave", request);
+                        
+                        Platform.runLater(() -> {
+                            // Reload both lists
+                            loadAllGroups();
+                            loadMyGroups();
+                            NotificationManager.showSuccess("Successfully left group: " + group.getName());
+                        });
+                    } catch (Exception e) {
+                        Platform.runLater(() -> {
+                            showError("Failed to leave group: " + e.getMessage());
+                        });
+                        e.printStackTrace();
+                    }
+                });
             }
         });
     }
@@ -1093,11 +1345,12 @@ public class DashboardController implements Initializable {
                         ApiClient.delete("/groups/" + group.getGroupId());
                         
                         Platform.runLater(() -> {
-                            groupsList.remove(group);
-                            allGroups = List.copyOf(groupsList);
+                            allGroupsList.remove(group);
+                            myGroupsList.remove(group);
+                            allGroups = List.copyOf(allGroupsList);
                             updateStatistics();
                             updateGroupFilter();
-                            new Alert(Alert.AlertType.INFORMATION, "Group deleted successfully!").show();
+                            NotificationManager.showSuccess("Group deleted successfully!");
                         });
                     } catch (Exception e) {
                         Platform.runLater(() -> {
@@ -1147,13 +1400,16 @@ public class DashboardController implements Initializable {
         if (taskStatusPieChart != null) {
             ObservableList<PieChart.Data> pieChartData = FXCollections.observableArrayList();
             
-            long openCount = tasksList.stream()
+            // Create a copy to avoid ConcurrentModificationException
+            List<Task> tasksCopy = new ArrayList<>(tasksList);
+            
+            long openCount = tasksCopy.stream()
                     .filter(t -> t.getStatus() == Task.TaskStatus.OPEN)
                     .count();
-            long inProgressCount = tasksList.stream()
+            long inProgressCount = tasksCopy.stream()
                     .filter(t -> t.getStatus() == Task.TaskStatus.IN_PROGRESS)
                     .count();
-            long doneCount = tasksList.stream()
+            long doneCount = tasksCopy.stream()
                     .filter(t -> t.getStatus() == Task.TaskStatus.DONE)
                     .count();
             
@@ -1175,11 +1431,11 @@ public class DashboardController implements Initializable {
             // Set colors for pie chart slices
             if (!pieChartData.isEmpty()) {
                 for (PieChart.Data data : pieChartData) {
-                    String color = "#f39c12"; // Orange for Open
+                    String color = "#000000"; // Black for Open
                     if (data.getName().contains("In Progress")) {
-                        color = "#3498db"; // Blue for In Progress
+                        color = "#000000"; // Black for In Progress
                     } else if (data.getName().contains("Done")) {
-                        color = "#27ae60"; // Green for Done
+                        color = "#000000"; // Black for Done
                     }
                     data.getNode().setStyle("-fx-pie-color: " + color + ";");
                 }
@@ -1193,13 +1449,16 @@ public class DashboardController implements Initializable {
             XYChart.Series<String, Number> series = new XYChart.Series<>();
             series.setName("Tasks");
             
-            long openCount = tasksList.stream()
+            // Create a copy to avoid ConcurrentModificationException
+            List<Task> tasksCopy = new ArrayList<>(tasksList);
+            
+            long openCount = tasksCopy.stream()
                     .filter(t -> t.getStatus() == Task.TaskStatus.OPEN)
                     .count();
-            long inProgressCount = tasksList.stream()
+            long inProgressCount = tasksCopy.stream()
                     .filter(t -> t.getStatus() == Task.TaskStatus.IN_PROGRESS)
                     .count();
-            long doneCount = tasksList.stream()
+            long doneCount = tasksCopy.stream()
                     .filter(t -> t.getStatus() == Task.TaskStatus.DONE)
                     .count();
             
@@ -1219,7 +1478,9 @@ public class DashboardController implements Initializable {
             
             // Count tasks per group
             Map<String, Long> tasksPerGroup = new HashMap<>();
-            for (Task task : tasksList) {
+            // Create a copy to avoid ConcurrentModificationException
+            List<Task> tasksCopy = new ArrayList<>(tasksList);
+            for (Task task : tasksCopy) {
                 Group group = allGroups.stream()
                         .filter(g -> g.getGroupId().equals(task.getGroupId()))
                         .findFirst()
@@ -1245,15 +1506,19 @@ public class DashboardController implements Initializable {
         activitySummaryBox.getChildren().clear();
         
         // Calculate activity statistics
-        int totalGroups = groupsList.size();
+        int totalGroups = myGroupsList.size();
         int totalTasks = tasksList.size();
-        int completedTasks = (int) tasksList.stream()
+        
+        // Create a copy to avoid ConcurrentModificationException
+        List<Task> tasksCopy = new ArrayList<>(tasksList);
+        
+        int completedTasks = (int) tasksCopy.stream()
                 .filter(t -> t.getStatus() == Task.TaskStatus.DONE)
                 .count();
-        int openTasks = (int) tasksList.stream()
+        int openTasks = (int) tasksCopy.stream()
                 .filter(t -> t.getStatus() == Task.TaskStatus.OPEN)
                 .count();
-        int inProgressTasks = (int) tasksList.stream()
+        int inProgressTasks = (int) tasksCopy.stream()
                 .filter(t -> t.getStatus() == Task.TaskStatus.IN_PROGRESS)
                 .count();
         
@@ -1269,19 +1534,19 @@ public class DashboardController implements Initializable {
         activitySummaryBox.getChildren().add(tasksLabel);
         
         Label openLabel = new Label("• Open Tasks: " + openTasks);
-        openLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #f39c12;");
+        openLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #000000;");
         activitySummaryBox.getChildren().add(openLabel);
         
         Label inProgressLabel = new Label("• In Progress: " + inProgressTasks);
-        inProgressLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #3498db;");
+        inProgressLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #000000;");
         activitySummaryBox.getChildren().add(inProgressLabel);
         
         Label completedLabel = new Label("• Completed: " + completedTasks);
-        completedLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #27ae60;");
+        completedLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #000000;");
         activitySummaryBox.getChildren().add(completedLabel);
         
         Label completionRateLabel = new Label("• Completion Rate: " + String.format("%.1f", completionRate) + "%");
-        completionRateLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #27ae60;");
+        completionRateLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #000000;");
         activitySummaryBox.getChildren().add(completionRateLabel);
         
         // Add separator
@@ -1293,7 +1558,9 @@ public class DashboardController implements Initializable {
         recentLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
         activitySummaryBox.getChildren().add(recentLabel);
         
-        List<Task> recentTasks = tasksList.stream()
+        // Create a copy to avoid ConcurrentModificationException
+        List<Task> tasksCopyForRecent = new ArrayList<>(tasksList);
+        List<Task> recentTasks = tasksCopyForRecent.stream()
                 .sorted((t1, t2) -> {
                     if (t1.getCreatedAt() != null && t2.getCreatedAt() != null) {
                         return t2.getCreatedAt().compareTo(t1.getCreatedAt());
@@ -1328,7 +1595,8 @@ public class DashboardController implements Initializable {
 
     private void updateGroupFilter() {
         if (groupFilterComboBox != null) {
-            groupFilterComboBox.setItems(FXCollections.observableArrayList(allGroups));
+            // Use myGroupsList for filtering tasks (only groups where user is a member)
+            groupFilterComboBox.setItems(FXCollections.observableArrayList(myGroupsList));
             groupFilterComboBox.setConverter(new StringConverter<Group>() {
                 @Override
                 public String toString(Group group) {
@@ -1337,7 +1605,9 @@ public class DashboardController implements Initializable {
                 
                 @Override
                 public Group fromString(String string) {
-                    return allGroups.stream()
+                    // Create a copy to avoid ConcurrentModificationException
+                    List<Group> myGroupsCopy = new ArrayList<>(myGroupsList);
+                    return myGroupsCopy.stream()
                             .filter(g -> g.getName().equals(string))
                             .findFirst()
                             .orElse(null);
@@ -1359,7 +1629,7 @@ public class DashboardController implements Initializable {
                     request.put("password", password);
                 }
 
-                String response = ApiClient.put("/users/" + userId, request);
+                ApiClient.put("/users/" + userId, request);
                 Platform.runLater(() -> {
                     new Alert(Alert.AlertType.INFORMATION, "Profile updated successfully!").show();
                 });

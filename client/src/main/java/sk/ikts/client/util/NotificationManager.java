@@ -119,26 +119,26 @@ public class NotificationManager {
             notificationBox.setMinWidth(250);
             
             // Style based on type
-            String backgroundColor = "#667eea"; // Default purple
+            String backgroundColor = "#000000"; // Default black
             String icon = "🔔";
             
             if (type != null) {
                 switch (type.toLowerCase()) {
                     case "success":
-                        backgroundColor = "#4facfe";
+                        backgroundColor = "#000000";
                         icon = "✅";
                         break;
                     case "error":
-                        backgroundColor = "#f5576c";
+                        backgroundColor = "#000000";
                         icon = "❌";
                         break;
                     case "warning":
-                        backgroundColor = "#f39c12";
+                        backgroundColor = "#000000";
                         icon = "⚠️";
                         break;
                     case "info":
                     default:
-                        backgroundColor = "#667eea";
+                        backgroundColor = "#000000";
                         icon = "🔔";
                         break;
                 }

@@ -17,17 +17,17 @@
     <!-- Top: Status bar -->
     <top>
         <HBox spacing="15" alignment="CENTER_LEFT" styleClass="top-bar">
-            <Label text="📚 CALLSTUDY"
+            <Label text="CALLSTUDY"
                    styleClass="title-label"
                    style="-fx-text-fill: white; -fx-font-size: 20px;"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Label fx:id="statusLabel" text="Loading..."
                    style="-fx-text-fill: white; -fx-font-size: 12px;"/>
-            <Button fx:id="profileButton" text="👤 Profile" onAction="#showProfileDialog"
+            <Button fx:id="profileButton" text="Profile" onAction="#showProfileDialog"
                     styleClass="modern-button"/>
-            <Button fx:id="logoutButton" text="🚪 Logout" onAction="#handleLogout"
-                    styleClass="modern-button" style="-fx-background-color: #e74c3c; -fx-text-fill: white;"/>
-            <Button fx:id="refreshButton" text="🔄 Refresh" onAction="#handleRefresh"
+            <Button fx:id="logoutButton" text="Logout" onAction="#handleLogout"
+                    styleClass="danger-button"/>
+            <Button fx:id="refreshButton" text="Refresh" onAction="#handleRefresh"
                     styleClass="success-button"/>
         </HBox>
     </top>
@@ -38,46 +38,80 @@
             <tabs>
                 <!-- Groups Tab -->
                 <Tab text="Groups">
-                    <VBox spacing="10">
-                        <padding>
-                            <Insets top="10" right="10" bottom="10" left="10"/>
-                        </padding>
-                        <children>
-                            <HBox spacing="10" alignment="CENTER_LEFT">
-                                <Label text="📁 All Study Groups" 
-                                       styleClass="section-label"/>
-                                <Region HBox.hgrow="ALWAYS"/>
-                                <Button fx:id="createGroupButton" text="➕ Create Group" 
-                                        onAction="#showCreateGroupDialog"
-                                        styleClass="success-button"/>
-                            </HBox>
+                    <TabPane tabClosingPolicy="UNAVAILABLE">
+                        <tabs>
+                            <!-- All Groups Tab -->
+                            <Tab text="All Groups">
+                                <VBox spacing="12">
+                                    <padding>
+                                        <Insets top="12" right="12" bottom="12" left="12"/>
+                                    </padding>
+                                    <children>
+                                        <HBox spacing="12" alignment="CENTER_LEFT">
+                                            <Label text="All Study Groups" 
+                                                   styleClass="section-label"/>
+                                            <Region HBox.hgrow="ALWAYS"/>
+                                            <Button fx:id="createGroupButton" text="Create Group" 
+                                                    onAction="#showCreateGroupDialog"
+                                                    styleClass="success-button"/>
+                                        </HBox>
+                                        
+                                        <TableView fx:id="allGroupsTable" prefHeight="500" styleClass="table-view">
+                                            <columns>
+                                                <TableColumn fx:id="allGroupNameColumn" text="Name" prefWidth="180"/>
+                                                <TableColumn fx:id="allGroupDescriptionColumn" text="Description" prefWidth="250"/>
+                                                <TableColumn fx:id="allGroupOwnerColumn" text="Owner" prefWidth="150"/>
+                                                <TableColumn fx:id="allGroupCreatedColumn" text="Created" prefWidth="130"/>
+                                                <TableColumn fx:id="allGroupActionsColumn" text="Actions" prefWidth="180"/>
+                                            </columns>
+                                        </TableView>
+                                    </children>
+                                </VBox>
+                            </Tab>
                             
-                            <TableView fx:id="groupsTable" prefHeight="500" styleClass="table-view">
-                                <columns>
-                                    <TableColumn fx:id="groupNameColumn" text="Name" prefWidth="200"/>
-                                    <TableColumn fx:id="groupDescriptionColumn" text="Description" prefWidth="300"/>
-                                    <TableColumn fx:id="groupCreatedColumn" text="Created" prefWidth="150"/>
-                                    <TableColumn fx:id="groupActionsColumn" text="Actions" prefWidth="200"/>
-                                </columns>
-                            </TableView>
-                        </children>
-                    </VBox>
+                            <!-- My Groups Tab -->
+                            <Tab text="My Groups">
+                                <VBox spacing="12">
+                                    <padding>
+                                        <Insets top="12" right="12" bottom="12" left="12"/>
+                                    </padding>
+                                    <children>
+                                        <HBox spacing="12" alignment="CENTER_LEFT">
+                                            <Label text="My Study Groups" 
+                                                   styleClass="section-label"/>
+                                            <Region HBox.hgrow="ALWAYS"/>
+                                        </HBox>
+                                        
+                                        <TableView fx:id="myGroupsTable" prefHeight="500" styleClass="table-view">
+                                            <columns>
+                                                <TableColumn fx:id="myGroupNameColumn" text="Name" prefWidth="180"/>
+                                                <TableColumn fx:id="myGroupDescriptionColumn" text="Description" prefWidth="250"/>
+                                                <TableColumn fx:id="myGroupOwnerColumn" text="Owner" prefWidth="150"/>
+                                                <TableColumn fx:id="myGroupCreatedColumn" text="Created" prefWidth="130"/>
+                                                <TableColumn fx:id="myGroupActionsColumn" text="Actions" prefWidth="200"/>
+                                            </columns>
+                                        </TableView>
+                                    </children>
+                                </VBox>
+                            </Tab>
+                        </tabs>
+                    </TabPane>
                 </Tab>
                 
                 <!-- Tasks Tab -->
                 <Tab text="Tasks">
-                    <VBox spacing="10">
+                    <VBox spacing="12">
                         <padding>
-                            <Insets top="10" right="10" bottom="10" left="10"/>
+                            <Insets top="12" right="12" bottom="12" left="12"/>
                         </padding>
                         <children>
-                            <HBox spacing="10" alignment="CENTER_LEFT">
-                                <Label text="✅ All Tasks" 
+                            <HBox spacing="12" alignment="CENTER_LEFT">
+                                <Label text="All Tasks" 
                                        styleClass="section-label"/>
                                 <Region HBox.hgrow="ALWAYS"/>
                                 <ComboBox fx:id="groupFilterComboBox" promptText="Filter by Group" 
                                           prefWidth="200" styleClass="combo-box"/>
-                                <Button fx:id="createTaskButton" text="➕ Create Task" 
+                                <Button fx:id="createTaskButton" text="Create Task" 
                                         onAction="#showCreateTaskDialog"
                                         styleClass="modern-button"/>
                             </HBox>
@@ -98,15 +132,15 @@
                 <!-- Statistics Tab -->
                 <Tab text="Statistics">
                     <ScrollPane fitToWidth="true">
-                        <VBox spacing="20" alignment="CENTER">
+                        <VBox spacing="15" alignment="CENTER">
                             <padding>
-                                <Insets top="20" right="20" bottom="20" left="20"/>
+                                <Insets top="15" right="15" bottom="15" left="15"/>
                             </padding>
                             <children>
-                                <Label text="📊 Dashboard Statistics" 
+                                <Label text="Dashboard Statistics" 
                                        styleClass="title-label"/>
                                 
-                                <GridPane hgap="20" vgap="20">
+                                <GridPane hgap="15" vgap="15">
                                     <columnConstraints>
                                         <ColumnConstraints prefWidth="250"/>
                                         <ColumnConstraints prefWidth="250"/>
@@ -122,28 +156,28 @@
                                         <VBox spacing="10" styleClass="stat-card">
                                             <Label text="Total Tasks" styleClass="stat-label"/>
                                             <Label fx:id="totalTasksLabel" text="0" 
-                                                   styleClass="stat-value" style="-fx-text-fill: #4facfe;"/>
+                                                   styleClass="stat-value" style="-fx-text-fill: #000000;"/>
                                         </VBox>
                                         
                                         <VBox spacing="10" styleClass="stat-card">
                                             <Label text="Open Tasks" styleClass="stat-label"/>
                                             <Label fx:id="openTasksLabel" text="0" 
-                                                   styleClass="stat-value" style="-fx-text-fill: #f5576c;"/>
+                                                   styleClass="stat-value" style="-fx-text-fill: #000000;"/>
                                         </VBox>
                                         
                                         <VBox spacing="10" styleClass="stat-card">
                                             <Label text="Completed Tasks" styleClass="stat-label"/>
                                             <Label fx:id="completedTasksLabel" text="0" 
-                                                   styleClass="stat-value" style="-fx-text-fill: #00f2fe;"/>
+                                                   styleClass="stat-value" style="-fx-text-fill: #000000;"/>
                                         </VBox>
                                     </children>
                                 </GridPane>
                                 
                                 <Label text="Task Completion Ratio" 
                                        styleClass="section-label"/>
-                                <VBox spacing="10" styleClass="card" style="-fx-pref-width: 500;">
+                                <VBox spacing="8" styleClass="card" style="-fx-pref-width: 500;">
                                     <Label fx:id="completionRatioLabel" text="0%" 
-                                           style="-fx-font-size: 48px; -fx-font-weight: bold; -fx-text-fill: #667eea; -fx-alignment: center;"/>
+                                           style="-fx-font-size: 48px; -fx-font-weight: bold; -fx-text-fill: #000000; -fx-alignment: center;"/>
                                     <ProgressBar fx:id="completionProgressBar" prefWidth="450" progress="0" styleClass="progress-bar"/>
                                     <Label text="Tasks completed vs total tasks" 
                                            styleClass="stat-label"/>
@@ -151,14 +185,14 @@
                                 
                                 <Label text="Task Status Distribution" 
                                        styleClass="section-label"/>
-                                <VBox spacing="10" styleClass="card" style="-fx-pref-width: 500;">
-                                    <PieChart fx:id="taskStatusPieChart" prefWidth="450" prefHeight="300"/>
+                                <VBox spacing="8" styleClass="card" style="-fx-pref-width: 500;">
+                                    <PieChart fx:id="taskStatusPieChart" prefWidth="450" prefHeight="280"/>
                                 </VBox>
                                 
                                 <Label text="Tasks by Status" 
                                        styleClass="section-label"/>
-                                <VBox spacing="10" styleClass="card" style="-fx-pref-width: 500;">
-                                    <BarChart fx:id="taskStatusBarChart" prefWidth="450" prefHeight="300">
+                                <VBox spacing="8" styleClass="card" style="-fx-pref-width: 500;">
+                                    <BarChart fx:id="taskStatusBarChart" prefWidth="450" prefHeight="280">
                                         <xAxis>
                                             <CategoryAxis fx:id="statusCategoryAxis" label="Status"/>
                                         </xAxis>
@@ -170,8 +204,8 @@
                                 
                                 <Label text="Tasks by Group" 
                                        styleClass="section-label"/>
-                                <VBox spacing="10" styleClass="card" style="-fx-pref-width: 500;">
-                                    <BarChart fx:id="tasksByGroupBarChart" prefWidth="450" prefHeight="300">
+                                <VBox spacing="8" styleClass="card" style="-fx-pref-width: 500;">
+                                    <BarChart fx:id="tasksByGroupBarChart" prefWidth="450" prefHeight="280">
                                         <xAxis>
                                             <CategoryAxis fx:id="groupCategoryAxis" label="Group"/>
                                         </xAxis>
@@ -183,7 +217,7 @@
                                 
                                 <Label text="Activity Summary" 
                                        styleClass="section-label"/>
-                                <VBox spacing="10" styleClass="card" style="-fx-pref-width: 500;">
+                                <VBox spacing="8" styleClass="card" style="-fx-pref-width: 500;">
                                     <VBox fx:id="activitySummaryBox" spacing="5"/>
                                 </VBox>
                             </children>
@@ -194,19 +228,19 @@
                 <!-- Settings Tab -->
                 <Tab text="Settings">
                     <ScrollPane fitToWidth="true">
-                        <VBox spacing="20" alignment="CENTER">
+                        <VBox spacing="15" alignment="CENTER">
                             <padding>
-                                <Insets top="20" right="20" bottom="20" left="20"/>
+                                <Insets top="15" right="15" bottom="15" left="15"/>
                             </padding>
                             <children>
-                                <Label text="⚙️ Settings" 
+                                <Label text="Settings" 
                                        styleClass="title-label"/>
                                 
-                                <VBox spacing="15" styleClass="card" style="-fx-pref-width: 500;">
-                                    <Label text="👤 Profile Settings" 
+                                <VBox spacing="12" styleClass="card" style="-fx-pref-width: 500;">
+                                    <Label text="Profile Settings" 
                                            styleClass="section-label"/>
                                     
-                                    <VBox spacing="10">
+                                    <VBox spacing="8">
                                         <Label text="Change Name:" style="-fx-font-size: 14px; -fx-text-fill: #495057;"/>
                                         <TextField fx:id="settingsNameField" promptText="Enter new name" styleClass="modern-text-field"/>
                                         <Button fx:id="updateNameButton" text="Update Name" 
@@ -216,7 +250,7 @@
                                     
                                     <Separator styleClass="separator"/>
                                     
-                                    <VBox spacing="10">
+                                    <VBox spacing="8">
                                         <Label text="Change Password:" style="-fx-font-size: 14px; -fx-text-fill: #495057;"/>
                                         <PasswordField fx:id="settingsPasswordField" promptText="Enter new password" styleClass="modern-text-field"/>
                                         <PasswordField fx:id="settingsConfirmPasswordField" promptText="Confirm new password" styleClass="modern-text-field"/>
@@ -226,8 +260,8 @@
                                     </VBox>
                                 </VBox>
                                 
-                                <VBox spacing="15" styleClass="card" style="-fx-pref-width: 500;">
-                                    <Label text="👥 User Profiles" 
+                                <VBox spacing="12" styleClass="card" style="-fx-pref-width: 500;">
+                                    <Label text="User Profiles" 
                                            styleClass="section-label"/>
                                     
                                     <TableView fx:id="usersTable" prefHeight="400" styleClass="table-view">

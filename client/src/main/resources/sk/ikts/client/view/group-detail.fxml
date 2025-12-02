@@ -11,11 +11,11 @@
             styleClass="main-background">
     
     <top>
-        <HBox spacing="15" alignment="CENTER_LEFT" styleClass="top-bar">
-            <Label fx:id="groupNameLabel" text="📁 Group Name" 
+        <HBox spacing="12" alignment="CENTER_LEFT" styleClass="top-bar">
+            <Label fx:id="groupNameLabel" text="Group Name" 
                    style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;"/>
             <Region HBox.hgrow="ALWAYS"/>
-            <Button fx:id="backButton" text="⬅ Back" onAction="#handleBack"
+            <Button fx:id="backButton" text="Back" onAction="#handleBack"
                     styleClass="modern-button"/>
         </HBox>
     </top>
@@ -25,26 +25,26 @@
             <tabs>
                 <!-- Tasks Tab -->
                 <Tab text="Tasks">
-                    <VBox spacing="10">
+                    <VBox spacing="12">
                         <padding>
-                            <Insets top="10" right="10" bottom="10" left="10"/>
+                            <Insets top="12" right="12" bottom="12" left="12"/>
                         </padding>
                         <children>
-                            <HBox spacing="10" alignment="CENTER_LEFT">
-                                <Label text="✅ Group Tasks" 
+                            <HBox spacing="12" alignment="CENTER_LEFT">
+                                <Label text="Group Tasks" 
                                        styleClass="section-label"/>
                                 <Region HBox.hgrow="ALWAYS"/>
-                                <Button fx:id="createTaskButton" text="➕ Create Task" 
+                                <Button fx:id="createTaskButton" text="Create Task" 
                                         onAction="#handleCreateTask"
                                         styleClass="modern-button"/>
                             </HBox>
                             
                             <TableView fx:id="tasksTable" prefHeight="400" styleClass="table-view">
                                 <columns>
-                                    <TableColumn fx:id="taskTitleColumn" text="Title" prefWidth="200"/>
-                                    <TableColumn fx:id="taskStatusColumn" text="Status" prefWidth="120"/>
-                                    <TableColumn fx:id="taskDeadlineColumn" text="Deadline" prefWidth="150"/>
-                                    <TableColumn fx:id="taskActionsColumn" text="Actions" prefWidth="200"/>
+                                    <TableColumn fx:id="taskTitleColumn" text="Title" prefWidth="250"/>
+                                    <TableColumn fx:id="taskStatusColumn" text="Status" prefWidth="100"/>
+                                    <TableColumn fx:id="taskDeadlineColumn" text="Deadline" prefWidth="120"/>
+                                    <TableColumn fx:id="taskActionsColumn" text="Actions" prefWidth="150"/>
                                 </columns>
                             </TableView>
                         </children>
@@ -53,19 +53,19 @@
                 
                 <!-- Resources Tab -->
                 <Tab text="Resources">
-                    <VBox spacing="10">
+                    <VBox spacing="12">
                         <padding>
-                            <Insets top="10" right="10" bottom="10" left="10"/>
+                            <Insets top="12" right="12" bottom="12" left="12"/>
                         </padding>
                         <children>
-                            <HBox spacing="10" alignment="CENTER_LEFT">
-                                <Label text="📎 Shared Resources" 
+                            <HBox spacing="12" alignment="CENTER_LEFT">
+                                <Label text="Shared Resources" 
                                        styleClass="section-label"/>
                                 <Region HBox.hgrow="ALWAYS"/>
-                                <Button fx:id="uploadFileButton" text="📤 Upload File" 
+                                <Button fx:id="uploadFileButton" text="Upload File" 
                                         onAction="#handleUploadFile"
                                         styleClass="success-button"/>
-                                <Button fx:id="shareUrlButton" text="🔗 Share URL" 
+                                <Button fx:id="shareUrlButton" text="Share URL" 
                                         onAction="#handleShareUrl"
                                         styleClass="modern-button"/>
                             </HBox>
@@ -83,7 +83,7 @@
                 </Tab>
                 
                 <!-- Chat Tab -->
-                <Tab text="💬 Chat">
+                <Tab text="Chat">
                     <BorderPane styleClass="main-background">
                         <center>
                             <ScrollPane fx:id="chatScrollPane" fitToWidth="true" vvalue="1.0" style="-fx-background: transparent;">
@@ -96,7 +96,7 @@
                             <HBox spacing="10" style="-fx-padding: 15; -fx-background-color: white; -fx-background-radius: 0 0 10 10;">
                                 <TextField fx:id="chatMessageField" promptText="Type your message..." 
                                            HBox.hgrow="ALWAYS" onAction="#handleSendMessage" styleClass="modern-text-field"/>
-                                <Button fx:id="sendMessageButton" text="📤 Send" 
+                                <Button fx:id="sendMessageButton" text="Send" 
                                         onAction="#handleSendMessage"
                                         styleClass="modern-button"/>
                             </HBox>
@@ -106,12 +106,12 @@
                 
                 <!-- Members Tab -->
                 <Tab text="Members">
-                    <VBox spacing="10">
+                    <VBox spacing="12">
                         <padding>
-                            <Insets top="10" right="10" bottom="10" left="10"/>
+                            <Insets top="12" right="12" bottom="12" left="12"/>
                         </padding>
                         <children>
-                            <Label text="👥 Group Members" 
+                            <Label text="Group Members" 
                                    styleClass="section-label"/>
                             
                             <ListView fx:id="membersList" prefHeight="400" styleClass="list-view"/>
