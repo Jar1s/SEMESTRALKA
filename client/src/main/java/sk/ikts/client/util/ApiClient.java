@@ -152,6 +152,30 @@ public class ApiClient {
         }
     }
 
+    /**
+     * Make a DELETE request with body
+     */
+    public static String delete(String endpoint, Object body) throws IOException {
+        String json = gson.toJson(body);
+        RequestBody requestBody = RequestBody.create(json, MediaType.get("application/json; charset=utf-8"));
+        
+        Request request = new Request.Builder()
+                .url(BASE_URL + endpoint)
+                .delete(requestBody)
+                .build();
+        
+        try (Response response = client.newCall(request).execute()) {
+            String bodyString = response.body() != null ? response.body().string() : "";
+            
+            if (!response.isSuccessful()) {
+                System.err.println("DELETE error " + response.code() + " for " + endpoint + ": " + bodyString);
+                throw new IOException("Server error " + response.code() + ": " + bodyString);
+            }
+            
+            return bodyString;
+        }
+    }
+
     public static Gson getGson() {
         return gson;
     }
