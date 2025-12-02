@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sk.ikts.server.dto.CreateGroupRequest;
 import sk.ikts.server.dto.GroupDTO;
+import sk.ikts.server.dto.UserDTO;
 import sk.ikts.server.service.GroupService;
 
 import java.util.List;
@@ -114,6 +115,23 @@ public class GroupController {
             return ResponseEntity.ok(groups);
         } catch (Exception e) {
             System.err.println("Error in getGroupsForUser controller: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new java.util.ArrayList<>());
+        }
+    }
+
+    /**
+     * Get all members of a group
+     * GET /api/groups/{groupId}/members
+     */
+    @GetMapping("/{groupId}/members")
+    public ResponseEntity<List<UserDTO>> getGroupMembers(@PathVariable("groupId") Long groupId) {
+        try {
+            List<UserDTO> members = groupService.getGroupMembers(groupId);
+            return ResponseEntity.ok(members);
+        } catch (Exception e) {
+            System.err.println("Error in getGroupMembers controller: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new java.util.ArrayList<>());

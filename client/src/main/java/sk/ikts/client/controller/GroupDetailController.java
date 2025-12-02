@@ -495,10 +495,35 @@ public class GroupDetailController implements Initializable {
     }
 
     private void loadMembers() {
-        // TODO: Load members from API
-        if (membersList != null) {
-            membersList.setItems(FXCollections.observableArrayList("Member 1", "Member 2"));
-        }
+        if (group == null || membersList == null) return;
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                String response = ApiClient.get("/groups/" + group.getGroupId() + "/members");
+                Type listType = new TypeToken<List<Map<String, Object>>>(){}.getType();
+                List<Map<String, Object>> members = gson.fromJson(response, listType);
+                
+                Platform.runLater(() -> {
+                    if (members != null && !members.isEmpty()) {
+                        List<String> memberNames = members.stream()
+                                .map(member -> {
+                                    String name = (String) member.get("name");
+                                    return name != null ? name : "Unknown";
+                                })
+                                .collect(java.util.stream.Collectors.toList());
+                        membersList.setItems(FXCollections.observableArrayList(memberNames));
+                    } else {
+                        membersList.setItems(FXCollections.observableArrayList());
+                    }
+                });
+            } catch (Exception e) {
+                System.err.println("Error loading members: " + e.getMessage());
+                e.printStackTrace();
+                Platform.runLater(() -> {
+                    membersList.setItems(FXCollections.observableArrayList());
+                });
+            }
+        });
     }
 
     @FXML

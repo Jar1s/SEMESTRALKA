@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import sk.ikts.server.dto.CreateGroupRequest;
 import sk.ikts.server.dto.GroupDTO;
+import sk.ikts.server.dto.UserDTO;
 import sk.ikts.server.model.Group;
 import sk.ikts.server.model.Membership;
 import sk.ikts.server.repository.GroupRepository;
@@ -163,6 +164,38 @@ public class GroupService {
                     .collect(Collectors.toList());
         } catch (Exception e) {
             System.err.println("Error in getGroupsForUser: " + e.getMessage());
+            e.printStackTrace();
+            return new java.util.ArrayList<>();
+        }
+    }
+
+    /**
+     * Get all members of a group with their names
+     * @param groupId group ID
+     * @return List of UserDTOs representing group members
+     */
+    public List<UserDTO> getGroupMembers(Long groupId) {
+        try {
+            List<Membership> memberships = membershipRepository.findByGroupId(groupId);
+            
+            if (memberships == null || memberships.isEmpty()) {
+                return new java.util.ArrayList<>();
+            }
+            
+            List<Long> userIds = memberships.stream()
+                    .map(Membership::getUserId)
+                    .filter(id -> id != null)
+                    .collect(Collectors.toList());
+
+            if (userIds.isEmpty()) {
+                return new java.util.ArrayList<>();
+            }
+
+            return userRepository.findAllById(userIds).stream()
+                    .map(user -> new UserDTO(user.getUserId(), user.getEmail(), user.getName()))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            System.err.println("Error in getGroupMembers: " + e.getMessage());
             e.printStackTrace();
             return new java.util.ArrayList<>();
         }

@@ -117,19 +117,38 @@
 
 .table-row-cell {
     -fx-background-color: white;
+    -fx-text-fill: #2c3e50;
 }
 
 .table-row-cell:odd {
     -fx-background-color: #f8f9fa;
+    -fx-text-fill: #2c3e50;
 }
 
 .table-row-cell:selected {
     -fx-background-color: linear-gradient(to right, #667eea 0%, #764ba2 100%);
     -fx-text-background-color: white;
+    -fx-text-fill: white;
+}
+
+.table-row-cell:selected:hover {
+    -fx-background-color: linear-gradient(to right, #5568d3 0%, #6a3d8f 100%);
+    -fx-text-background-color: white;
+    -fx-text-fill: white;
 }
 
 .table-row-cell:hover {
     -fx-background-color: #e3f2fd;
+    -fx-text-fill: #2c3e50;
+}
+
+/* Ensure table cells have readable text */
+.table-row-cell .table-cell {
+    -fx-text-fill: inherit;
+}
+
+.table-row-cell:selected .table-cell {
+    -fx-text-fill: white;
 }
 
 /* Text Fields */
