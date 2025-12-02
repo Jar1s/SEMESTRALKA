@@ -94,6 +94,62 @@ public class NotificationService {
         );
         notifyAll(notification);
     }
+
+    /**
+     * Notify about approaching deadline (urgent - less than 1 hour)
+     */
+    public void notifyDeadlineApproaching(Long groupId, Long taskId, String taskTitle, long timeRemaining, boolean urgent) {
+        String timeText;
+        if (urgent) {
+            timeText = timeRemaining <= 1 ? "less than 1 minute" : timeRemaining + " minutes";
+        } else {
+            timeText = timeRemaining + " hours";
+        }
+        
+        NotificationDTO notification = new NotificationDTO(
+                urgent ? "DEADLINE_URGENT" : "DEADLINE_WARNING",
+                "Task '" + taskTitle + "' deadline approaching! " + 
+                (urgent ? "Only " + timeText + " remaining!" : timeText + " remaining."),
+                groupId
+        );
+        notification.setTaskId(taskId);
+        notifyGroup(groupId, notification);
+    }
+
+    /**
+     * Notify about deadline reminder
+     * Used for tasks with deadlines within 3 days
+     */
+    public void notifyDeadlineReminder(Long groupId, Long taskId, String taskTitle, long hoursRemaining) {
+        String message;
+        if (hoursRemaining >= 24) {
+            long days = hoursRemaining / 24;
+            message = "Reminder: Task '" + taskTitle + "' deadline in " + days + " day" + (days > 1 ? "s" : "");
+        } else {
+            message = "Reminder: Task '" + taskTitle + "' deadline in " + hoursRemaining + " hours";
+        }
+        
+        NotificationDTO notification = new NotificationDTO(
+                "DEADLINE_REMINDER",
+                message,
+                groupId
+        );
+        notification.setTaskId(taskId);
+        notifyGroup(groupId, notification);
+    }
+
+    /**
+     * Notify about overdue deadline
+     */
+    public void notifyDeadlineOverdue(Long groupId, Long taskId, String taskTitle) {
+        NotificationDTO notification = new NotificationDTO(
+                "DEADLINE_OVERDUE",
+                "⚠️ Task '" + taskTitle + "' is overdue!",
+                groupId
+        );
+        notification.setTaskId(taskId);
+        notifyGroup(groupId, notification);
+    }
 }
 
 

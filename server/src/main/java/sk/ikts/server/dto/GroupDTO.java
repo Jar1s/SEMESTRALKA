@@ -12,6 +12,7 @@ public class GroupDTO {
     private String name;
     private String description;
     private Long createdBy;
+    private String ownerName; // Name of the group owner
     private LocalDateTime createdAt;
 
     // Constructors
@@ -23,6 +24,15 @@ public class GroupDTO {
         this.name = name;
         this.description = description;
         this.createdBy = createdBy;
+        this.createdAt = createdAt;
+    }
+
+    public GroupDTO(Long groupId, String name, String description, Long createdBy, String ownerName, LocalDateTime createdAt) {
+        this.groupId = groupId;
+        this.name = name;
+        this.description = description;
+        this.createdBy = createdBy;
+        this.ownerName = ownerName;
         this.createdAt = createdAt;
     }
 
@@ -65,6 +75,14 @@ public class GroupDTO {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getOwnerName() {
+        return ownerName;
+    }
+
+    public void setOwnerName(String ownerName) {
+        this.ownerName = ownerName;
     }
 }
 

@@ -11,6 +11,7 @@ import sk.ikts.server.dto.UserDTO;
 import sk.ikts.server.service.GroupService;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * REST Controller for group operations
@@ -76,6 +77,7 @@ public class GroupController {
 
     /**
      * Update group
+     * Only the owner can update the group
      * PUT /api/groups/{id}
      */
     @PutMapping("/{id}")
@@ -83,7 +85,14 @@ public class GroupController {
         GroupDTO group = groupService.updateGroup(id, request);
         
         if (group == null) {
-            return ResponseEntity.notFound().build();
+            // Check if group exists
+            GroupDTO existingGroup = groupService.getGroupById(id);
+            if (existingGroup == null) {
+                return ResponseEntity.notFound().build();
+            }
+            // Group exists but user is not owner
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only the group owner can update the group");
         }
         
         return ResponseEntity.ok(group);
@@ -135,6 +144,83 @@ public class GroupController {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new java.util.ArrayList<>());
+        }
+    }
+
+    /**
+     * Join a group - add current user as member
+     * POST /api/groups/{groupId}/join
+     * Request body: { "userId": <userId> }
+     */
+    @PostMapping("/{groupId}/join")
+    public ResponseEntity<?> joinGroup(@PathVariable("groupId") Long groupId, @RequestBody Map<String, Long> request) {
+        try {
+            Long userId = request.get("userId");
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("userId is required");
+            }
+
+            boolean joined = groupService.joinGroup(groupId, userId);
+            if (joined) {
+                return ResponseEntity.ok().body("Successfully joined group");
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Failed to join group. User may already be a member or group doesn't exist.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error in joinGroup controller: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error joining group: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Leave a group - remove current user from group
+     * DELETE /api/groups/{groupId}/leave
+     * Request body: { "userId": <userId> }
+     */
+    @DeleteMapping("/{groupId}/leave")
+    public ResponseEntity<?> leaveGroup(@PathVariable("groupId") Long groupId, @RequestBody Map<String, Long> request) {
+        try {
+            Long userId = request.get("userId");
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("userId is required");
+            }
+
+            boolean left = groupService.leaveGroup(groupId, userId);
+            if (left) {
+                return ResponseEntity.ok().body("Successfully left group");
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Failed to leave group. User may not be a member or is the owner.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error in leaveGroup controller: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error leaving group: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get group owner information
+     * GET /api/groups/{groupId}/owner
+     */
+    @GetMapping("/{groupId}/owner")
+    public ResponseEntity<UserDTO> getGroupOwner(@PathVariable("groupId") Long groupId) {
+        try {
+            UserDTO owner = groupService.getGroupOwner(groupId);
+            if (owner == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(owner);
+        } catch (Exception e) {
+            System.err.println("Error in getGroupOwner controller: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

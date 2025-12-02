@@ -7,6 +7,7 @@ import sk.ikts.server.dto.GroupDTO;
 import sk.ikts.server.dto.UserDTO;
 import sk.ikts.server.model.Group;
 import sk.ikts.server.model.Membership;
+import sk.ikts.server.model.User;
 import sk.ikts.server.repository.GroupRepository;
 import sk.ikts.server.repository.MembershipRepository;
 import sk.ikts.server.repository.UserRepository;
@@ -106,9 +107,10 @@ public class GroupService {
 
     /**
      * Update group information
+     * Only the owner (createdBy) can update the group
      * @param groupId group ID
-     * @param request updated group data
-     * @return GroupDTO or null if group doesn't exist
+     * @param request updated group data (must have createdBy matching group owner)
+     * @return GroupDTO or null if group doesn't exist or user is not owner
      */
     public GroupDTO updateGroup(Long groupId, CreateGroupRequest request) {
         Optional<Group> groupOpt = groupRepository.findById(groupId);
@@ -117,6 +119,13 @@ public class GroupService {
         }
 
         Group group = groupOpt.get();
+        
+        // Check if user is the owner
+        if (!group.getCreatedBy().equals(request.getCreatedBy())) {
+            System.err.println("User " + request.getCreatedBy() + " is not the owner of group " + groupId);
+            return null;
+        }
+
         group.setName(request.getName());
         group.setDescription(request.getDescription());
         group = groupRepository.save(group);
@@ -202,14 +211,133 @@ public class GroupService {
     }
 
     /**
-     * Convert Group entity to DTO
+     * Join a group - add user as member
+     * @param groupId group ID
+     * @param userId user ID
+     * @return true if joined successfully, false if already member or group doesn't exist
+     */
+    public boolean joinGroup(Long groupId, Long userId) {
+        try {
+            // Check if group exists
+            if (!groupRepository.existsById(groupId)) {
+                System.err.println("Group not found: " + groupId);
+                return false;
+            }
+
+            // Check if user exists
+            if (!userRepository.existsById(userId)) {
+                System.err.println("User not found: " + userId);
+                return false;
+            }
+
+            // Check if user is already a member
+            if (membershipRepository.existsByUserIdAndGroupId(userId, groupId)) {
+                System.err.println("User " + userId + " is already a member of group " + groupId);
+                return false;
+            }
+
+            // Create membership with MEMBER role
+            Membership membership = new Membership(userId, groupId, Membership.Role.MEMBER);
+            membershipRepository.save(membership);
+
+            System.out.println("User " + userId + " joined group " + groupId);
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error in joinGroup: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Leave a group - remove user from group
+     * @param groupId group ID
+     * @param userId user ID
+     * @return true if left successfully, false if not a member or group doesn't exist
+     */
+    public boolean leaveGroup(Long groupId, Long userId) {
+        try {
+            // Check if membership exists
+            Optional<Membership> membershipOpt = membershipRepository.findByUserIdAndGroupId(userId, groupId);
+            if (membershipOpt.isEmpty()) {
+                System.err.println("User " + userId + " is not a member of group " + groupId);
+                return false;
+            }
+
+            // Don't allow owner to leave (they can only delete the group)
+            Optional<Group> groupOpt = groupRepository.findById(groupId);
+            if (groupOpt.isPresent() && groupOpt.get().getCreatedBy().equals(userId)) {
+                System.err.println("Owner cannot leave group. Use delete instead.");
+                return false;
+            }
+
+            membershipRepository.delete(membershipOpt.get());
+            System.out.println("User " + userId + " left group " + groupId);
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error in leaveGroup: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Get group owner information
+     * @param groupId group ID
+     * @return UserDTO of the owner or null if group doesn't exist
+     */
+    public UserDTO getGroupOwner(Long groupId) {
+        try {
+            Optional<Group> groupOpt = groupRepository.findById(groupId);
+            if (groupOpt.isEmpty()) {
+                return null;
+            }
+
+            Group group = groupOpt.get();
+            Optional<User> ownerOpt = userRepository.findById(group.getCreatedBy());
+            
+            if (ownerOpt.isEmpty()) {
+                return null;
+            }
+
+            User owner = ownerOpt.get();
+            return new UserDTO(owner.getUserId(), owner.getEmail(), owner.getName());
+        } catch (Exception e) {
+            System.err.println("Error in getGroupOwner: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Get owner name for a group
+     * @param createdBy user ID of the owner
+     * @return owner name or null if not found
+     */
+    private String getOwnerName(Long createdBy) {
+        if (createdBy == null) {
+            return null;
+        }
+        try {
+            Optional<User> userOpt = userRepository.findById(createdBy);
+            return userOpt.map(User::getName).orElse(null);
+        } catch (Exception e) {
+            System.err.println("Error getting owner name: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Convert Group entity to DTO with owner name
      */
     private GroupDTO convertToDTO(Group group) {
+        String ownerName = getOwnerName(group.getCreatedBy());
         return new GroupDTO(
                 group.getGroupId(),
                 group.getName(),
                 group.getDescription(),
                 group.getCreatedBy(),
+                ownerName,
                 group.getCreatedAt()
         );
     }
