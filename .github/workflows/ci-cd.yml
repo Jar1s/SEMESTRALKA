@@ -47,7 +47,7 @@ jobs:
         fail_ci_if_error: false
         
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results
@@ -83,13 +83,13 @@ jobs:
         mvn clean package -DskipTests
         
     - name: Upload server artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: server-jar
         path: server/target/*.jar
         
     - name: Upload client artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: client-jar
         path: client/target/*.jar
