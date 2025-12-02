@@ -7,6 +7,7 @@ import sk.ikts.server.dto.LoginRequest;
 import sk.ikts.server.dto.LoginResponse;
 import sk.ikts.server.dto.RegisterRequest;
 import sk.ikts.server.dto.UserDTO;
+import sk.ikts.server.model.AuthProvider;
 import sk.ikts.server.model.User;
 import sk.ikts.server.repository.UserRepository;
 
@@ -44,6 +45,7 @@ public class UserService {
 
             // Create and save user
             User user = new User(request.getEmail(), request.getName(), hashedPassword);
+            user.setAuthProvider(AuthProvider.LOCAL); // Set auth provider to LOCAL for regular registration
             user = userRepository.save(user);
 
             // Return DTO

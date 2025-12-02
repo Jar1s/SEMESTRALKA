@@ -307,7 +307,34 @@ public class DashboardController implements Initializable {
             });
         }
         if (taskStatusColumn != null) {
-            taskStatusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
+            taskStatusColumn.setCellFactory(column -> new TableCell<Task, String>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || getTableRow().getItem() == null) {
+                        setGraphic(null);
+                        setText(null);
+                    } else {
+                        Task task = getTableRow().getItem();
+                        ComboBox<Task.TaskStatus> statusCombo = new ComboBox<>(
+                                FXCollections.observableArrayList(Task.TaskStatus.values()));
+                        statusCombo.setValue(task.getStatus());
+                        statusCombo.setPrefWidth(130);
+                        statusCombo.setMaxWidth(130);
+                        statusCombo.setPrefHeight(25);
+                        statusCombo.setMaxHeight(25);
+                        // Use CSS class for better styling and readability
+                        statusCombo.getStyleClass().add("combo-box");
+                        statusCombo.setStyle(
+                            "-fx-font-size: 11px; " +
+                            "-fx-padding: 2px 5px; " +
+                            "-fx-text-fill: #2c3e50;"
+                        );
+                        statusCombo.setOnAction(e -> updateTaskStatus(task.getTaskId(), statusCombo.getValue()));
+                        setGraphic(statusCombo);
+                    }
+                }
+            });
         }
         if (taskDeadlineColumn != null) {
             taskDeadlineColumn.setCellFactory(column -> new TableCell<Task, String>() {
@@ -336,15 +363,12 @@ public class DashboardController implements Initializable {
                         setGraphic(null);
                     } else {
                         Task task = getTableRow().getItem();
-                        HBox hbox = new HBox(5);
                         Button editButton = new Button("Edit");
+                        editButton.setPrefWidth(70);
+                        editButton.setMaxWidth(70);
+                        editButton.setStyle("-fx-font-size: 12px;");
                         editButton.setOnAction(e -> showEditTaskDialog(task));
-                        ComboBox<Task.TaskStatus> statusCombo = new ComboBox<>(
-                                FXCollections.observableArrayList(Task.TaskStatus.values()));
-                        statusCombo.setValue(task.getStatus());
-                        statusCombo.setOnAction(e -> updateTaskStatus(task.getTaskId(), statusCombo.getValue()));
-                        hbox.getChildren().addAll(editButton, statusCombo);
-                        setGraphic(hbox);
+                        setGraphic(editButton);
                     }
                 }
             });
@@ -420,7 +444,7 @@ public class DashboardController implements Initializable {
     }
 
     /**
-     * Load groups from API
+     * Load groups from API - loads ALL groups regardless of creator
      */
     private CompletableFuture<Void> loadGroups() {
         return CompletableFuture.runAsync(() -> {
@@ -429,12 +453,17 @@ public class DashboardController implements Initializable {
                 Type listType = new TypeToken<List<Group>>(){}.getType();
                 List<Group> groups = gson.fromJson(response, listType);
                 
+                System.out.println("Loaded " + (groups != null ? groups.size() : 0) + " groups from API");
+                
                 Platform.runLater(() -> {
                     groupsList.clear();
-                    if (groups != null) {
+                    if (groups != null && !groups.isEmpty()) {
                         groupsList.addAll(groups);
                         allGroups = groups;
+                        System.out.println("Added " + groups.size() + " groups to UI");
                         updateGroupFilter();
+                    } else {
+                        System.out.println("No groups found or groups list is null");
                     }
                 });
             } catch (Exception e) {
@@ -443,6 +472,7 @@ public class DashboardController implements Initializable {
                         statusLabel.setText("Error loading groups: " + e.getMessage());
                     }
                 });
+                System.err.println("Error loading groups: " + e.getMessage());
                 e.printStackTrace();
             }
         });

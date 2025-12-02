@@ -3,6 +3,10 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.NumberAxis?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
@@ -40,7 +44,7 @@
                         </padding>
                         <children>
                             <HBox spacing="10" alignment="CENTER_LEFT">
-                                <Label text="📁 My Study Groups" 
+                                <Label text="📁 All Study Groups" 
                                        styleClass="section-label"/>
                                 <Region HBox.hgrow="ALWAYS"/>
                                 <Button fx:id="createGroupButton" text="➕ Create Group" 
@@ -82,9 +86,9 @@
                                 <columns>
                                     <TableColumn fx:id="taskTitleColumn" text="Title" prefWidth="200"/>
                                     <TableColumn fx:id="taskGroupColumn" text="Group" prefWidth="150"/>
-                                    <TableColumn fx:id="taskStatusColumn" text="Status" prefWidth="120"/>
+                                    <TableColumn fx:id="taskStatusColumn" text="Status" prefWidth="140"/>
                                     <TableColumn fx:id="taskDeadlineColumn" text="Deadline" prefWidth="150"/>
-                                    <TableColumn fx:id="taskActionsColumn" text="Actions" prefWidth="200"/>
+                                    <TableColumn fx:id="taskActionsColumn" text="Actions" prefWidth="80"/>
                                 </columns>
                             </TableView>
                         </children>
@@ -143,6 +147,44 @@
                                     <ProgressBar fx:id="completionProgressBar" prefWidth="450" progress="0" styleClass="progress-bar"/>
                                     <Label text="Tasks completed vs total tasks" 
                                            styleClass="stat-label"/>
+                                </VBox>
+                                
+                                <Label text="Task Status Distribution" 
+                                       styleClass="section-label"/>
+                                <VBox spacing="10" styleClass="card" style="-fx-pref-width: 500;">
+                                    <PieChart fx:id="taskStatusPieChart" prefWidth="450" prefHeight="300"/>
+                                </VBox>
+                                
+                                <Label text="Tasks by Status" 
+                                       styleClass="section-label"/>
+                                <VBox spacing="10" styleClass="card" style="-fx-pref-width: 500;">
+                                    <BarChart fx:id="taskStatusBarChart" prefWidth="450" prefHeight="300">
+                                        <xAxis>
+                                            <CategoryAxis fx:id="statusCategoryAxis" label="Status"/>
+                                        </xAxis>
+                                        <yAxis>
+                                            <NumberAxis fx:id="taskCountAxis" label="Number of Tasks"/>
+                                        </yAxis>
+                                    </BarChart>
+                                </VBox>
+                                
+                                <Label text="Tasks by Group" 
+                                       styleClass="section-label"/>
+                                <VBox spacing="10" styleClass="card" style="-fx-pref-width: 500;">
+                                    <BarChart fx:id="tasksByGroupBarChart" prefWidth="450" prefHeight="300">
+                                        <xAxis>
+                                            <CategoryAxis fx:id="groupCategoryAxis" label="Group"/>
+                                        </xAxis>
+                                        <yAxis>
+                                            <NumberAxis fx:id="groupTaskCountAxis" label="Number of Tasks"/>
+                                        </yAxis>
+                                    </BarChart>
+                                </VBox>
+                                
+                                <Label text="Activity Summary" 
+                                       styleClass="section-label"/>
+                                <VBox spacing="10" styleClass="card" style="-fx-pref-width: 500;">
+                                    <VBox fx:id="activitySummaryBox" spacing="5"/>
                                 </VBox>
                             </children>
                         </VBox>

@@ -25,12 +25,13 @@ public class GroupController {
     private GroupService groupService;
 
     /**
-     * Get all groups
+     * Get all groups - returns ALL groups regardless of creator
      * GET /api/groups
      */
     @GetMapping
     public ResponseEntity<List<GroupDTO>> getAllGroups() {
         List<GroupDTO> groups = groupService.getAllGroups();
+        System.out.println("GET /api/groups - returning " + groups.size() + " groups");
         return ResponseEntity.ok(groups);
     }
 

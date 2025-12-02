@@ -22,8 +22,15 @@ public class User {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "password_hash", nullable = false)
+    @Column(name = "password_hash")
     private String passwordHash;
+
+    @Column(name = "google_id", unique = true)
+    private String googleId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", nullable = false)
+    private AuthProvider authProvider = AuthProvider.LOCAL;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -31,6 +38,7 @@ public class User {
     // Constructors
     public User() {
         this.createdAt = LocalDateTime.now();
+        this.authProvider = AuthProvider.LOCAL;
     }
 
     public User(String email, String name, String passwordHash) {
@@ -38,6 +46,7 @@ public class User {
         this.name = name;
         this.passwordHash = passwordHash;
         this.createdAt = LocalDateTime.now();
+        this.authProvider = AuthProvider.LOCAL;
     }
 
     // Getters and Setters
@@ -79,6 +88,22 @@ public class User {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getGoogleId() {
+        return googleId;
+    }
+
+    public void setGoogleId(String googleId) {
+        this.googleId = googleId;
+    }
+
+    public AuthProvider getAuthProvider() {
+        return authProvider;
+    }
+
+    public void setAuthProvider(AuthProvider authProvider) {
+        this.authProvider = authProvider;
     }
 }
 

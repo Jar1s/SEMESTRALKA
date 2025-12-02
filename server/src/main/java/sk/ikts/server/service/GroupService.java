@@ -78,12 +78,16 @@ public class GroupService {
 
     /**
      * Get all groups
-     * @return List of all groups
+     * @return List of all groups (no filtering - shows all groups regardless of creator)
      */
     public List<GroupDTO> getAllGroups() {
-        return groupRepository.findAll().stream()
+        List<Group> allGroups = groupRepository.findAll();
+        System.out.println("Getting all groups - total count: " + allGroups.size());
+        List<GroupDTO> result = allGroups.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+        System.out.println("Returning " + result.size() + " groups");
+        return result;
     }
 
     /**

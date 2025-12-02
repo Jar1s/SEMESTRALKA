@@ -277,15 +277,35 @@
     -fx-border-radius: 10px;
     -fx-background-radius: 10px;
     -fx-padding: 5px 10px;
+    -fx-text-fill: #2c3e50;
 }
 
 .combo-box:hover {
     -fx-border-color: #667eea;
+    -fx-background-color: #f8f9fa;
+    -fx-text-fill: #2c3e50;
 }
 
 .combo-box:focused {
     -fx-border-color: #667eea;
     -fx-border-width: 2px;
+    -fx-text-fill: #2c3e50;
+}
+
+/* ComboBox list cell - for dropdown items */
+.combo-box .list-cell {
+    -fx-text-fill: #2c3e50;
+    -fx-background-color: white;
+}
+
+.combo-box .list-cell:hover {
+    -fx-background-color: #667eea;
+    -fx-text-fill: white;
+}
+
+.combo-box .list-cell:selected {
+    -fx-background-color: #667eea;
+    -fx-text-fill: white;
 }
 
 /* ListView */
