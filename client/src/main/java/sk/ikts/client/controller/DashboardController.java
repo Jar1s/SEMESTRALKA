@@ -27,8 +27,10 @@ import sk.ikts.client.model.Task;
 import sk.ikts.client.model.User;
 import sk.ikts.client.controller.GroupDetailController;
 import sk.ikts.client.util.ApiClient;
+import sk.ikts.client.util.NotificationManager;
 import sk.ikts.client.util.NotificationWebSocketClient;
 import sk.ikts.client.util.SceneManager;
+import sk.ikts.client.util.SessionManager;
 
 import java.lang.reflect.Type;
 import java.net.URL;
@@ -379,12 +381,8 @@ public class DashboardController implements Initializable {
                     updateStatistics();
                 }
                 
-                // Show notification alert
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Notification");
-                alert.setHeaderText(notification.getType());
-                alert.setContentText(notification.getMessage());
-                alert.show();
+                // Show toast notification instead of alert
+                NotificationManager.showInfo(notification.getMessage());
             });
         });
     }
@@ -547,16 +545,16 @@ public class DashboardController implements Initializable {
                 
                 Platform.runLater(() -> {
                     if (updatedUser != null) {
-                        new Alert(Alert.AlertType.INFORMATION, "Name updated successfully!").show();
+                        NotificationManager.showSuccess("Name updated successfully!");
                         settingsNameField.clear();
                         loadUsers(); // Refresh users list
                     } else {
-                        new Alert(Alert.AlertType.ERROR, "Failed to update name").show();
+                        NotificationManager.showError("Failed to update name");
                     }
                 });
             } catch (Exception e) {
                 Platform.runLater(() -> {
-                    new Alert(Alert.AlertType.ERROR, "Failed to update name: " + e.getMessage()).show();
+                    NotificationManager.showError("Failed to update name: " + e.getMessage());
                 });
                 e.printStackTrace();
             }
@@ -595,16 +593,16 @@ public class DashboardController implements Initializable {
                 
                 Platform.runLater(() -> {
                     if (updatedUser != null) {
-                        new Alert(Alert.AlertType.INFORMATION, "Password updated successfully!").show();
+                        NotificationManager.showSuccess("Password updated successfully!");
                         settingsPasswordField.clear();
                         settingsConfirmPasswordField.clear();
                     } else {
-                        new Alert(Alert.AlertType.ERROR, "Failed to update password").show();
+                        NotificationManager.showError("Failed to update password");
                     }
                 });
             } catch (Exception e) {
                 Platform.runLater(() -> {
-                    new Alert(Alert.AlertType.ERROR, "Failed to update password: " + e.getMessage()).show();
+                    NotificationManager.showError("Failed to update password: " + e.getMessage());
                 });
                 e.printStackTrace();
             }
@@ -1354,5 +1352,23 @@ public class DashboardController implements Initializable {
                 alert.show();
             });
         }
+    }
+
+    /**
+     * Handle logout - disconnect WebSocket, clear session, and return to login
+     */
+    @FXML
+    private void handleLogout() {
+        // Disconnect WebSocket if connected
+        if (webSocketClient != null) {
+            webSocketClient.disconnect();
+            webSocketClient = null;
+        }
+        
+        // Clear session
+        SessionManager.getInstance().logout();
+        
+        // Navigate to login screen
+        SceneManager.showLoginScene();
     }
 }

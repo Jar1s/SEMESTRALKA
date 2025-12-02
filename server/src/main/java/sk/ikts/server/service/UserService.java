@@ -70,7 +70,7 @@ public class UserService {
         User user = userOpt.get();
 
         // Verify password
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        if (user.getPasswordHash() == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             return new LoginResponse(false, "Invalid email or password", null);
         }
 
@@ -130,5 +130,6 @@ public class UserService {
         user = userRepository.save(user);
         return new UserDTO(user.getUserId(), user.getEmail(), user.getName());
     }
+
 }
 

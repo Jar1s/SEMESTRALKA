@@ -23,3 +23,6 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     List<ChatMessage> findTop50ByGroupIdOrderBySentAtDesc(Long groupId);
 }
 
+
+
+

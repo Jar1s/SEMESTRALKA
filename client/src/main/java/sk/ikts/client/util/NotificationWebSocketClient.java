@@ -15,7 +15,7 @@ import java.util.function.Consumer;
  * Added by Cursor AI - WebSocket client for real-time notifications
  */
 public class NotificationWebSocketClient {
-    private static final String WS_URL = "ws://localhost:8081/ws/simple";
+    private static final String WS_URL = "ws://127.0.0.1:8081/ws/simple";
     private WebSocketClient ws;
     private Consumer<Notification> onNotificationCallback;
     private final Gson gson = ApiClient.getGson();

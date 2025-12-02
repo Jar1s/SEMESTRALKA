@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class ApiClient {
 
-    private static final String BASE_URL = "http://localhost:8081/api";
+    private static final String BASE_URL = "http://127.0.0.1:8081/api";
     private static final OkHttpClient client = new OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)

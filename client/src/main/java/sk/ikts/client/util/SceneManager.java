@@ -1,10 +1,12 @@
 package sk.ikts.client.util;
 
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import sk.ikts.client.controller.DashboardController;
+import sk.ikts.client.controller.LoginController;
 
 import java.io.IOException;
 
@@ -34,9 +36,31 @@ public class SceneManager {
         try {
             FXMLLoader loader = new FXMLLoader(SceneManager.class.getResource(BASE_PATH + "login.fxml"));
             Parent root = loader.load();
-            Scene scene = new Scene(root, 600, 500);
+            
+            // Get controller and ensure buttons are visible
+            LoginController controller = loader.getController();
+            
+            // Use same size as initial application start
+            Scene scene = new Scene(root);
+            primaryStage.setTitle("Collaborative Study Platform");
             primaryStage.setScene(scene);
+            primaryStage.setMinWidth(450);
+            primaryStage.setMinHeight(550);
+            // Set reasonable default size if window was resized
+            if (primaryStage.getWidth() < 450 || primaryStage.getHeight() < 550) {
+                primaryStage.setWidth(600);
+                primaryStage.setHeight(700);
+            }
             primaryStage.centerOnScreen();
+            primaryStage.show(); // Ensure window is visible
+            primaryStage.toFront(); // Bring window to front
+            
+            // Ensure buttons are visible after scene is shown
+            Platform.runLater(() -> {
+                if (controller != null) {
+                    controller.ensureButtonsVisible();
+                }
+            });
         } catch (IOException e) {
             e.printStackTrace();
         }

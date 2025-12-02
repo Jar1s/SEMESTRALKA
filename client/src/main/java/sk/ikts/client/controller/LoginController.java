@@ -60,11 +60,57 @@ public class LoginController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        loginErrorLabel.setVisible(false);
-        registerErrorLabel.setVisible(false);
+        // Initialize error labels
+        if (loginErrorLabel != null) {
+            loginErrorLabel.setVisible(false);
+        }
+        if (registerErrorLabel != null) {
+            registerErrorLabel.setVisible(false);
+        }
         
-        loginButton.setOnAction(e -> handleLogin());
-        registerButton.setOnAction(e -> handleRegister());
+        // Initialize login button
+        if (loginButton != null) {
+            loginButton.setVisible(true);
+            loginButton.setDisable(false);
+            loginButton.setOnAction(e -> handleLogin());
+        }
+        
+        // Initialize register button
+        if (registerButton != null) {
+            registerButton.setVisible(true);
+            registerButton.setDisable(false);
+            registerButton.setOnAction(e -> handleRegister());
+        }
+        
+        // Clear any previous input
+        clearFields();
+    }
+    
+    /**
+     * Clear all input fields
+     */
+    private void clearFields() {
+        if (loginEmail != null) {
+            loginEmail.clear();
+        }
+        if (loginPassword != null) {
+            loginPassword.clear();
+        }
+        if (registerName != null) {
+            registerName.clear();
+        }
+        if (registerEmail != null) {
+            registerEmail.clear();
+        }
+        if (registerPassword != null) {
+            registerPassword.clear();
+        }
+        if (loginErrorLabel != null) {
+            loginErrorLabel.setVisible(false);
+        }
+        if (registerErrorLabel != null) {
+            registerErrorLabel.setVisible(false);
+        }
     }
 
     private void handleLogin() {
@@ -170,6 +216,22 @@ public class LoginController implements Initializable {
         registerErrorLabel.setVisible(true);
         if (!message.contains("successful")) {
             registerErrorLabel.setStyle("-fx-text-fill: red;");
+        }
+    }
+
+    /**
+     * Ensure all buttons are visible - called after scene is loaded
+     */
+    public void ensureButtonsVisible() {
+        if (loginButton != null) {
+            loginButton.setVisible(true);
+            loginButton.setDisable(false);
+            loginButton.setManaged(true);
+        }
+        if (registerButton != null) {
+            registerButton.setVisible(true);
+            registerButton.setDisable(false);
+            registerButton.setManaged(true);
         }
     }
 }

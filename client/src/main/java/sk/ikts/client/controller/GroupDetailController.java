@@ -12,6 +12,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.geometry.Insets;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -25,6 +26,7 @@ import sk.ikts.client.model.Resource;
 import sk.ikts.client.model.Task;
 import sk.ikts.client.util.ApiClient;
 import sk.ikts.client.util.ChatWebSocketClient;
+import sk.ikts.client.util.NotificationManager;
 import sk.ikts.client.util.SceneManager;
 
 import java.io.File;
@@ -266,25 +268,46 @@ public class GroupDetailController implements Initializable {
     }
     
     private void loadChatMessages() {
-        if (group == null || chatMessagesBox == null) return;
+        if (group == null || chatMessagesBox == null) {
+            System.out.println("Cannot load messages: group=" + group + ", chatMessagesBox=" + chatMessagesBox);
+            return;
+        }
         
         CompletableFuture.runAsync(() -> {
             try {
+                System.out.println("Loading chat messages for group: " + group.getGroupId());
                 String response = ApiClient.get("/chat/group/" + group.getGroupId());
+                System.out.println("Chat API response: " + response);
+                
                 Type listType = new TypeToken<List<ChatMessage>>(){}.getType();
                 List<ChatMessage> messages = gson.fromJson(response, listType);
                 
+                System.out.println("Loaded " + (messages != null ? messages.size() : 0) + " messages");
+                
                 Platform.runLater(() -> {
                     chatMessagesBox.getChildren().clear();
-                    if (messages != null) {
+                    if (messages != null && !messages.isEmpty()) {
                         for (ChatMessage message : messages) {
+                            System.out.println("Adding message: " + message.getMessage() + " from " + message.getUserName());
                             addChatMessageToUI(message);
                         }
                         scrollChatToBottom();
+                    } else {
+                        // Show empty state
+                        Label emptyLabel = new Label("No messages yet. Start the conversation!");
+                        emptyLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #6c757d; -fx-padding: 20;");
+                        emptyLabel.setAlignment(javafx.geometry.Pos.CENTER);
+                        chatMessagesBox.getChildren().add(emptyLabel);
                     }
                 });
             } catch (Exception e) {
+                System.err.println("Error loading chat messages: " + e.getMessage());
                 e.printStackTrace();
+                Platform.runLater(() -> {
+                    Label errorLabel = new Label("Error loading messages: " + e.getMessage());
+                    errorLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #f5576c; -fx-padding: 10;");
+                    chatMessagesBox.getChildren().add(errorLabel);
+                });
             }
         });
     }
@@ -302,40 +325,90 @@ public class GroupDetailController implements Initializable {
     }
     
     private void addChatMessageToUI(ChatMessage message) {
-        if (chatMessagesBox == null) return;
+        if (chatMessagesBox == null || message == null) return;
         
         Platform.runLater(() -> {
-            HBox messageBox = new HBox(10);
-            messageBox.setStyle("-fx-padding: 5;");
+            boolean isMyMessage = message.getUserId() != null && message.getUserId().equals(userId);
             
-            boolean isMyMessage = message.getUserId().equals(userId);
-            
-            VBox contentBox = new VBox(3);
-            Label nameLabel = new Label(message.getUserName() + 
-                (message.getSentAt() != null ? " - " + message.getSentAt().format(dateFormatter) : ""));
-            nameLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #7f8c8d;");
-            
-            Label messageLabel = new Label(message.getMessage());
-            messageLabel.setWrapText(true);
-            messageLabel.setMaxWidth(600);
-            messageLabel.setStyle("-fx-font-size: 12px; -fx-padding: 8; " +
-                (isMyMessage ? 
-                    "-fx-background-color: #3498db; -fx-text-fill: white; -fx-background-radius: 10;" :
-                    "-fx-background-color: #ecf0f1; -fx-text-fill: #2c3e50; -fx-background-radius: 10;"));
-            
-            contentBox.getChildren().addAll(nameLabel, messageLabel);
+            // Main container for the message
+            HBox messageContainer = new HBox(10);
+            messageContainer.setMaxWidth(Double.MAX_VALUE);
+            messageContainer.setPadding(new Insets(8, 15, 8, 15));
             
             if (isMyMessage) {
-                messageBox.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
-                Region spacer = new Region();
-                HBox.setHgrow(spacer, Priority.ALWAYS);
-                messageBox.getChildren().addAll(spacer, contentBox);
+                messageContainer.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
             } else {
-                messageBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-                messageBox.getChildren().add(contentBox);
+                messageContainer.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
             }
             
-            chatMessagesBox.getChildren().add(messageBox);
+            // Spacer for alignment
+            Region spacer = new Region();
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+            
+            // Message bubble container
+            VBox messageBubble = new VBox(5);
+            messageBubble.setMaxWidth(500);
+            messageBubble.setPadding(new Insets(10, 15, 10, 15));
+            
+            // Style for message bubble
+            if (isMyMessage) {
+                messageBubble.setStyle(
+                    "-fx-background-color: linear-gradient(to right, #667eea 0%, #764ba2 100%); " +
+                    "-fx-background-radius: 18px 18px 4px 18px; " +
+                    "-fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.3), 5, 0, 0, 2);"
+                );
+            } else {
+                messageBubble.setStyle(
+                    "-fx-background-color: white; " +
+                    "-fx-background-radius: 18px 18px 18px 4px; " +
+                    "-fx-border-color: #e9ecef; " +
+                    "-fx-border-width: 1px; " +
+                    "-fx-border-radius: 18px 18px 18px 4px; " +
+                    "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 3, 0, 0, 1);"
+                );
+            }
+            
+            // User name and time
+            HBox headerBox = new HBox(8);
+            headerBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            
+            Label nameLabel = new Label(message.getUserName() != null ? message.getUserName() : "Unknown");
+            nameLabel.setStyle(
+                "-fx-font-size: 13px; " +
+                "-fx-font-weight: bold; " +
+                (isMyMessage ? "-fx-text-fill: rgba(255, 255, 255, 0.9);" : "-fx-text-fill: #667eea;")
+            );
+            
+            if (message.getSentAt() != null) {
+                Label timeLabel = new Label(message.getSentAt().format(DateTimeFormatter.ofPattern("HH:mm")));
+                timeLabel.setStyle(
+                    "-fx-font-size: 11px; " +
+                    (isMyMessage ? "-fx-text-fill: rgba(255, 255, 255, 0.7);" : "-fx-text-fill: #6c757d;")
+                );
+                headerBox.getChildren().addAll(nameLabel, timeLabel);
+            } else {
+                headerBox.getChildren().add(nameLabel);
+            }
+            
+            // Message text
+            Label messageLabel = new Label(message.getMessage() != null ? message.getMessage() : "");
+            messageLabel.setWrapText(true);
+            messageLabel.setStyle(
+                "-fx-font-size: 14px; " +
+                "-fx-line-spacing: 2px; " +
+                (isMyMessage ? "-fx-text-fill: white;" : "-fx-text-fill: #2c3e50;")
+            );
+            
+            messageBubble.getChildren().addAll(headerBox, messageLabel);
+            
+            // Add to container
+            if (isMyMessage) {
+                messageContainer.getChildren().addAll(spacer, messageBubble);
+            } else {
+                messageContainer.getChildren().addAll(messageBubble, spacer);
+            }
+            
+            chatMessagesBox.getChildren().add(messageContainer);
             scrollChatToBottom();
         });
     }
@@ -350,10 +423,15 @@ public class GroupDetailController implements Initializable {
     
     @FXML
     private void handleSendMessage() {
-        if (group == null || userId == null || chatMessageField == null) return;
+        if (group == null || userId == null || chatMessageField == null) {
+            System.out.println("Cannot send message: group=" + group + ", userId=" + userId + ", field=" + chatMessageField);
+            return;
+        }
         
         String messageText = chatMessageField.getText().trim();
         if (messageText.isEmpty()) return;
+        
+        System.out.println("Sending message: " + messageText + " to group " + group.getGroupId());
         
         CompletableFuture.runAsync(() -> {
             try {
@@ -362,16 +440,20 @@ public class GroupDetailController implements Initializable {
                 request.put("userId", userId);
                 request.put("message", messageText);
                 
-                ApiClient.post("/chat/send", request);
+                String response = ApiClient.post("/chat/send", request);
+                System.out.println("Message sent successfully: " + response);
                 
+                // Reload messages to show the new one
                 Platform.runLater(() -> {
                     chatMessageField.clear();
+                    loadChatMessages();
                 });
             } catch (Exception e) {
+                System.err.println("Error sending message: " + e.getMessage());
+                e.printStackTrace();
                 Platform.runLater(() -> {
                     new Alert(Alert.AlertType.ERROR, "Failed to send message: " + e.getMessage()).show();
                 });
-                e.printStackTrace();
             }
         });
     }
@@ -509,11 +591,11 @@ public class GroupDetailController implements Initializable {
                 String response = ApiClient.post("/tasks", request);
                 Platform.runLater(() -> {
                     loadTasks();
-                    new Alert(Alert.AlertType.INFORMATION, "Task created successfully!").show();
+                    NotificationManager.showSuccess("Task created successfully!");
                 });
             } catch (Exception e) {
                 Platform.runLater(() -> {
-                    new Alert(Alert.AlertType.ERROR, "Failed to create task: " + e.getMessage()).show();
+                    NotificationManager.showError("Failed to create task: " + e.getMessage());
                 });
                 e.printStackTrace();
             }
@@ -569,7 +651,7 @@ public class GroupDetailController implements Initializable {
                         .build();
 
                 Request request = new Request.Builder()
-                        .url("http://localhost:8081/api/resources/upload")
+                        .url("http://127.0.0.1:8081/api/resources/upload")
                         .post(requestBody)
                         .build();
 
@@ -580,23 +662,22 @@ public class GroupDetailController implements Initializable {
                     
                     if (response.isSuccessful()) {
                         Platform.runLater(() -> {
+                            progressAlert.close();
                             loadResources();
-                            new Alert(Alert.AlertType.INFORMATION, 
-                                "File '" + title + "' uploaded successfully!").show();
+                            NotificationManager.showSuccess("File '" + title + "' uploaded successfully!");
                         });
                     } else {
                         String errorBody = response.body() != null ? response.body().string() : "Unknown error";
                         Platform.runLater(() -> {
-                            new Alert(Alert.AlertType.ERROR, 
-                                "Failed to upload file: " + response.code() + " - " + errorBody).show();
+                            progressAlert.close();
+                            NotificationManager.showError("Failed to upload file: " + response.code() + " - " + errorBody);
                         });
                     }
                 }
             } catch (Exception e) {
                 Platform.runLater(() -> {
                     progressAlert.close();
-                    new Alert(Alert.AlertType.ERROR, 
-                        "Error uploading file: " + e.getMessage()).show();
+                    NotificationManager.showError("Error uploading file: " + e.getMessage());
                 });
                 e.printStackTrace();
             }
@@ -652,14 +733,14 @@ public class GroupDetailController implements Initializable {
                 request.put("url", url);
 
                 String response = ApiClient.post("/resources/url", request);
-                Platform.runLater(() -> {
-                    loadResources();
-                    new Alert(Alert.AlertType.INFORMATION, "URL shared successfully!").show();
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> {
-                    new Alert(Alert.AlertType.ERROR, "Failed to share URL: " + e.getMessage()).show();
-                });
+                    Platform.runLater(() -> {
+                        loadResources();
+                        NotificationManager.showSuccess("URL shared successfully!");
+                    });
+                } catch (Exception e) {
+                    Platform.runLater(() -> {
+                        NotificationManager.showError("Failed to share URL: " + e.getMessage());
+                    });
                 e.printStackTrace();
             }
         });
@@ -669,7 +750,7 @@ public class GroupDetailController implements Initializable {
         CompletableFuture.runAsync(() -> {
             try {
                 Request request = new Request.Builder()
-                        .url("http://localhost:8081/api/resources/" + resource.getResourceId() + "/download")
+                        .url("http://127.0.0.1:8081/api/resources/" + resource.getResourceId() + "/download")
                         .get()
                         .build();
 
@@ -738,11 +819,11 @@ public class GroupDetailController implements Initializable {
                         
                         Platform.runLater(() -> {
                             loadResources();
-                            new Alert(Alert.AlertType.INFORMATION, "Resource deleted successfully!").show();
+                            NotificationManager.showSuccess("Resource deleted successfully!");
                         });
                     } catch (Exception e) {
                         Platform.runLater(() -> {
-                            new Alert(Alert.AlertType.ERROR, "Failed to delete resource: " + e.getMessage()).show();
+                            NotificationManager.showError("Failed to delete resource: " + e.getMessage());
                         });
                         e.printStackTrace();
                     }
@@ -817,12 +898,12 @@ public class GroupDetailController implements Initializable {
                 Platform.runLater(() -> {
                     if (updatedTask != null) {
                         loadTasks(); // Reload tasks to show updated data
-                        new Alert(Alert.AlertType.INFORMATION, "Task updated successfully!").show();
+                        NotificationManager.showSuccess("Task updated successfully!");
                     }
                 });
             } catch (Exception e) {
                 Platform.runLater(() -> {
-                    new Alert(Alert.AlertType.ERROR, "Failed to update task: " + e.getMessage()).show();
+                    NotificationManager.showError("Failed to update task: " + e.getMessage());
                 });
                 e.printStackTrace();
             }

@@ -28,7 +28,7 @@ public class ChatWebSocketClient {
         
         try {
             // Use simple WebSocket endpoint for chat
-            String wsUrl = "ws://localhost:8081/ws/simple";
+            String wsUrl = "ws://127.0.0.1:8081/ws/simple";
             URI serverUri = new URI(wsUrl);
             
             ws = new WebSocketClient(serverUri) {

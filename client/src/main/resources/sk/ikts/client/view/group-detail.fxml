@@ -83,11 +83,11 @@
                 </Tab>
                 
                 <!-- Chat Tab -->
-                <Tab text="Chat">
-                    <BorderPane>
+                <Tab text="💬 Chat">
+                    <BorderPane styleClass="main-background">
                         <center>
-                            <ScrollPane fx:id="chatScrollPane" fitToWidth="true" vvalue="1.0">
-                                <VBox fx:id="chatMessagesBox" spacing="5" style="-fx-padding: 10;">
+                            <ScrollPane fx:id="chatScrollPane" fitToWidth="true" vvalue="1.0" style="-fx-background: transparent;">
+                                <VBox fx:id="chatMessagesBox" spacing="0" style="-fx-padding: 10; -fx-background-color: #f8f9fa;">
                                     <!-- Messages will be added here -->
                                 </VBox>
                             </ScrollPane>

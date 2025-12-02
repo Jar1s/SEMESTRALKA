@@ -84,8 +84,7 @@
                         <option>javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED</option>
                         <option>--add-opens</option>
                         <option>javafx.graphics/com.sun.javafx.stage=ALL-UNNAMED</option>
-                        <option>--enable-native-access</option>
-                        <option>javafx.graphics</option>
+                        <option>--enable-native-access=javafx.graphics</option>
                     </options>
                 </configuration>
             </plugin>
@@ -97,6 +96,9 @@
                 <version>3.1.0</version>
                 <configuration>
                     <mainClass>sk.ikts.client.CollaborativeStudyPlatform</mainClass>
+                    <options>
+                        <option>--enable-native-access=javafx.graphics</option>
+                    </options>
                 </configuration>
             </plugin>
 

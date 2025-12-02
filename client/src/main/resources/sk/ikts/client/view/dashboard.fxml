@@ -21,6 +21,8 @@
                    style="-fx-text-fill: white; -fx-font-size: 12px;"/>
             <Button fx:id="profileButton" text="👤 Profile" onAction="#showProfileDialog"
                     styleClass="modern-button"/>
+            <Button fx:id="logoutButton" text="🚪 Logout" onAction="#handleLogout"
+                    styleClass="modern-button" style="-fx-background-color: #e74c3c; -fx-text-fill: white;"/>
             <Button fx:id="refreshButton" text="🔄 Refresh" onAction="#handleRefresh"
                     styleClass="success-button"/>
         </HBox>

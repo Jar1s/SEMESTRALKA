@@ -5,6 +5,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import sk.ikts.client.util.NotificationManager;
 import sk.ikts.client.util.SceneManager;
 
 /**
@@ -16,6 +17,9 @@ public class CollaborativeStudyPlatform extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        // Initialize NotificationManager
+        NotificationManager.initialize(primaryStage);
+        
         // Set primary stage in SceneManager for scene transitions
         SceneManager.setPrimaryStage(primaryStage);
         
