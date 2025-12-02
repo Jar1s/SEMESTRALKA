@@ -7,6 +7,7 @@ public class Group {
     private String name;
     private String description;
     private Long createdBy;
+    private String ownerName; // Name of the group owner
     private LocalDateTime createdAt;
 
     public Group() {}
@@ -49,6 +50,14 @@ public class Group {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getOwnerName() {
+        return ownerName;
+    }
+
+    public void setOwnerName(String ownerName) {
+        this.ownerName = ownerName;
     }
 }
 
