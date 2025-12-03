@@ -17,13 +17,14 @@ public class TaskDTO {
     private Task.TaskStatus status;
     private LocalDateTime deadline;
     private LocalDateTime createdAt;
+    private String reminders; // JSON array of hours before deadline
 
     // Constructors
     public TaskDTO() {
     }
 
     public TaskDTO(Long taskId, Long groupId, Long createdBy, String title, String description,
-                   Task.TaskStatus status, LocalDateTime deadline, LocalDateTime createdAt) {
+                   Task.TaskStatus status, LocalDateTime deadline, LocalDateTime createdAt, String reminders) {
         this.taskId = taskId;
         this.groupId = groupId;
         this.createdBy = createdBy;
@@ -32,6 +33,7 @@ public class TaskDTO {
         this.status = status;
         this.deadline = deadline;
         this.createdAt = createdAt;
+        this.reminders = reminders;
     }
 
     // Getters and Setters
@@ -97,6 +99,14 @@ public class TaskDTO {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getReminders() {
+        return reminders;
+    }
+
+    public void setReminders(String reminders) {
+        this.reminders = reminders;
     }
 }
 

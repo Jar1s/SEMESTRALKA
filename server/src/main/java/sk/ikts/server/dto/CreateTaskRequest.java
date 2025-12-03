@@ -22,6 +22,8 @@ public class CreateTaskRequest {
     private String description;
 
     private LocalDateTime deadline;
+    
+    private String reminders; // JSON array of hours before deadline, e.g., "[24, 6, 1]"
 
     // Constructors
     public CreateTaskRequest() {
@@ -74,6 +76,14 @@ public class CreateTaskRequest {
 
     public void setDeadline(LocalDateTime deadline) {
         this.deadline = deadline;
+    }
+
+    public String getReminders() {
+        return reminders;
+    }
+
+    public void setReminders(String reminders) {
+        this.reminders = reminders;
     }
 }
 

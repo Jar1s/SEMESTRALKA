@@ -42,9 +42,8 @@
                             <TableView fx:id="tasksTable" prefHeight="400" styleClass="table-view">
                                 <columns>
                                     <TableColumn fx:id="taskTitleColumn" text="Title" prefWidth="250"/>
-                                    <TableColumn fx:id="taskStatusColumn" text="Status" prefWidth="100"/>
                                     <TableColumn fx:id="taskDeadlineColumn" text="Deadline" prefWidth="120"/>
-                                    <TableColumn fx:id="taskActionsColumn" text="Actions" prefWidth="150"/>
+                                    <TableColumn fx:id="taskActionsColumn" text="Actions" prefWidth="200"/>
                                 </columns>
                             </TableView>
                         </children>

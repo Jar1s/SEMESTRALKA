@@ -119,8 +119,13 @@ public class TaskController {
                     // Ignore deadline parsing errors
                 }
             }
+            
+            String reminders = null;
+            if (request.containsKey("reminders") && request.get("reminders") != null) {
+                reminders = request.get("reminders").toString();
+            }
 
-            TaskDTO updatedTask = taskService.updateTask(id, title, description, status, deadline);
+            TaskDTO updatedTask = taskService.updateTask(id, title, description, status, deadline, reminders);
             return ResponseEntity.ok(updatedTask);
         } catch (Exception e) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR).build();

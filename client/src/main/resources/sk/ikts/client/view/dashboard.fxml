@@ -120,9 +120,8 @@
                                 <columns>
                                     <TableColumn fx:id="taskTitleColumn" text="Title" prefWidth="200"/>
                                     <TableColumn fx:id="taskGroupColumn" text="Group" prefWidth="150"/>
-                                    <TableColumn fx:id="taskStatusColumn" text="Status" prefWidth="140"/>
                                     <TableColumn fx:id="taskDeadlineColumn" text="Deadline" prefWidth="150"/>
-                                    <TableColumn fx:id="taskActionsColumn" text="Actions" prefWidth="80"/>
+                                    <TableColumn fx:id="taskActionsColumn" text="Actions" prefWidth="200"/>
                                 </columns>
                             </TableView>
                         </children>

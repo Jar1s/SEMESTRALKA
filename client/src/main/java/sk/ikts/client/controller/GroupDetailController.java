@@ -60,7 +60,6 @@ public class GroupDetailController implements Initializable {
     // Tasks
     @FXML private TableView<Task> tasksTable;
     @FXML private TableColumn<Task, String> taskTitleColumn;
-    @FXML private TableColumn<Task, String> taskStatusColumn;
     @FXML private TableColumn<Task, String> taskDeadlineColumn;
     @FXML private TableColumn<Task, String> taskActionsColumn;
     @FXML private Button createTaskButton;
@@ -147,45 +146,19 @@ public class GroupDetailController implements Initializable {
         if (taskTitleColumn != null) {
             taskTitleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
         }
-        if (taskStatusColumn != null) {
-            taskStatusColumn.setCellFactory(column -> new TableCell<Task, String>() {
-                @Override
-                protected void updateItem(String item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (empty || getTableRow().getItem() == null) {
-                        setText(null);
-                        setStyle("");
-                    } else {
-                        Task task = getTableRow().getItem();
-                        String statusText = task.getStatus().toString();
-                        setText(statusText);
-                        
-                        // Style based on status
-                        switch (task.getStatus()) {
-                            case DONE:
-                                setStyle("-fx-text-fill: #000000; -fx-font-weight: bold; -fx-font-size: 12px;");
-                                break;
-                            case IN_PROGRESS:
-                                setStyle("-fx-text-fill: #000000; -fx-font-weight: bold; -fx-font-size: 12px;");
-                                break;
-                            case OPEN:
-                                setStyle("-fx-text-fill: #6c757d; -fx-font-size: 12px;");
-                                break;
-                        }
-                    }
-                }
-            });
-        }
         if (taskDeadlineColumn != null) {
-            taskDeadlineColumn.setCellFactory(column -> new TableCell<Task, String>() {
-                @Override
-                protected void updateItem(String item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (empty || getTableRow().getItem() == null) {
-                        setText(null);
-                        setStyle("");
-                    } else {
+            taskDeadlineColumn.setCellFactory(column -> {
+                TableCell<Task, String> cell = new TableCell<Task, String>() {
+                    private javafx.beans.value.ChangeListener<Boolean> selectionListener;
+                    
+                    private void updateStyle() {
+                        if (isEmpty() || getTableRow() == null || getTableRow().getItem() == null) {
+                            return;
+                        }
+                        
                         Task task = getTableRow().getItem();
+                        boolean isSelected = getTableRow() != null && getTableRow().isSelected();
+                        
                         if (task.getDeadline() != null) {
                             LocalDateTime deadline = task.getDeadline();
                             LocalDateTime now = LocalDateTime.now();
@@ -197,32 +170,66 @@ public class GroupDetailController implements Initializable {
                             long hoursUntil = java.time.temporal.ChronoUnit.HOURS.between(now, deadline);
                             long minutesUntil = java.time.temporal.ChronoUnit.MINUTES.between(now, deadline);
                             
-                            // Set text and style based on urgency
-                            if (task.getStatus() == Task.TaskStatus.DONE) {
-                                setText(deadlineText);
-                                setStyle("-fx-text-fill: #6c757d; -fx-font-size: 12px;"); // Gray for completed tasks
-                            } else if (deadline.isBefore(now)) {
-                                setText(deadlineText);
-                                setStyle("-fx-text-fill: #000000; -fx-font-weight: bold; -fx-font-size: 12px;"); // Black for overdue
-                            } else if (minutesUntil <= 60) {
-                                setText(deadlineText);
-                                setStyle("-fx-text-fill: #000000; -fx-font-weight: bold; -fx-font-size: 12px;"); // Black for urgent
-                            } else if (hoursUntil <= 6) {
-                                setText(deadlineText);
-                                setStyle("-fx-text-fill: #000000; -fx-font-weight: bold; -fx-font-size: 12px;"); // Black for warning
-                            } else if (hoursUntil <= 24) {
-                                setText(deadlineText);
-                                setStyle("-fx-text-fill: #000000; -fx-font-size: 12px;"); // Black for reminder
+                            // Set text and style based on urgency and selection state
+                            String baseStyle = "-fx-font-size: 12px;";
+                            String textColor;
+                            
+                            if (isSelected) {
+                                // White text when row is selected
+                                textColor = "-fx-text-fill: white;";
                             } else {
-                                setText(deadlineText);
-                                setStyle("-fx-text-fill: #2c3e50; -fx-font-size: 12px;"); // Default color
+                                // Normal colors based on urgency
+                                if (task.getStatus() == Task.TaskStatus.DONE) {
+                                    textColor = "-fx-text-fill: #6c757d;"; // Gray for completed tasks
+                                } else if (deadline.isBefore(now)) {
+                                    textColor = "-fx-text-fill: #000000; -fx-font-weight: bold;"; // Black for overdue
+                                } else if (minutesUntil <= 60) {
+                                    textColor = "-fx-text-fill: #000000; -fx-font-weight: bold;"; // Black for urgent
+                                } else if (hoursUntil <= 6) {
+                                    textColor = "-fx-text-fill: #000000; -fx-font-weight: bold;"; // Black for warning
+                                } else if (hoursUntil <= 24) {
+                                    textColor = "-fx-text-fill: #000000;"; // Black for reminder
+                                } else {
+                                    textColor = "-fx-text-fill: #2c3e50;"; // Default color
+                                }
                             }
+                            
+                            setText(deadlineText);
+                            setStyle(textColor + " " + baseStyle);
                         } else {
                             setText("-");
-                            setStyle("-fx-text-fill: #6c757d; -fx-font-size: 12px;");
+                            if (isSelected) {
+                                setStyle("-fx-text-fill: white; -fx-font-size: 12px;");
+                            } else {
+                                setStyle("-fx-text-fill: #6c757d; -fx-font-size: 12px;");
+                            }
                         }
                     }
-                }
+                    
+                    @Override
+                    protected void updateItem(String item, boolean empty) {
+                        super.updateItem(item, empty);
+                        
+                        // Remove old listener if exists
+                        if (getTableRow() != null && selectionListener != null) {
+                            getTableRow().selectedProperty().removeListener(selectionListener);
+                        }
+                        
+                        if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                            setText(null);
+                            setStyle("");
+                        } else {
+                            updateStyle();
+                            // Add listener to selection changes on the row
+                            selectionListener = (obs, wasSelected, isSelected) -> {
+                                updateStyle();
+                            };
+                            getTableRow().selectedProperty().addListener(selectionListener);
+                        }
+                    }
+                };
+                
+                return cell;
             });
         }
         if (taskActionsColumn != null) {
@@ -652,20 +659,83 @@ public class GroupDetailController implements Initializable {
         descriptionArea.setPromptText("Description");
         descriptionArea.setPrefRowCount(3);
         DatePicker deadlineDatePicker = new DatePicker();
-        TextField deadlineTimeField = new TextField();
-        deadlineTimeField.setPromptText("HH:mm (e.g., 14:30)");
-        deadlineTimeField.setMaxWidth(100);
+        
+        // Create time spinners for hours and minutes
+        Spinner<Integer> hourSpinner = new Spinner<>(0, 23, 12);
+        hourSpinner.setEditable(true);
+        hourSpinner.setPrefWidth(60);
+        hourSpinner.setMaxWidth(60);
+        hourSpinner.setStyle("-fx-font-size: 12px;");
+        
+        Spinner<Integer> minuteSpinner = new Spinner<>(0, 59, 0);
+        minuteSpinner.setEditable(true);
+        minuteSpinner.setPrefWidth(60);
+        minuteSpinner.setMaxWidth(60);
+        minuteSpinner.setStyle("-fx-font-size: 12px;");
+        
+        // Format spinners to show 2 digits
+        hourSpinner.getValueFactory().setConverter(new javafx.util.StringConverter<Integer>() {
+            @Override
+            public String toString(Integer value) {
+                return String.format("%02d", value);
+            }
+            
+            @Override
+            public Integer fromString(String string) {
+                try {
+                    return Integer.parseInt(string);
+                } catch (NumberFormatException e) {
+                    return 0;
+                }
+            }
+        });
+        
+        minuteSpinner.getValueFactory().setConverter(new javafx.util.StringConverter<Integer>() {
+            @Override
+            public String toString(Integer value) {
+                return String.format("%02d", value);
+            }
+            
+            @Override
+            public Integer fromString(String string) {
+                try {
+                    return Integer.parseInt(string);
+                } catch (NumberFormatException e) {
+                    return 0;
+                }
+            }
+        });
         
         // Create HBox for date and time
-        HBox deadlineBox = new HBox(10);
-        deadlineBox.getChildren().addAll(deadlineDatePicker, new Label("at"), deadlineTimeField);
+        HBox deadlineBox = new HBox(5);
         deadlineBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        deadlineBox.getChildren().addAll(
+            deadlineDatePicker, 
+            new Label("at"),
+            hourSpinner,
+            new Label(":"),
+            minuteSpinner
+        );
+        
+        // Create reminders checkboxes
+        CheckBox reminder24h = new CheckBox("24 hours before");
+        CheckBox reminder12h = new CheckBox("12 hours before");
+        CheckBox reminder6h = new CheckBox("6 hours before");
+        CheckBox reminder3h = new CheckBox("3 hours before");
+        CheckBox reminder1h = new CheckBox("1 hour before");
+        
+        reminder24h.setSelected(true); // Default: 24h reminder
+        
+        HBox remindersBox = new HBox(10);
+        remindersBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        remindersBox.getChildren().addAll(reminder24h, reminder12h, reminder6h, reminder3h, reminder1h);
 
         javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(10);
         content.getChildren().addAll(
                 new Label("Title:"), titleField,
                 new Label("Description:"), descriptionArea,
-                new Label("Deadline (optional):"), deadlineBox);
+                new Label("Deadline (optional):"), deadlineBox,
+                new Label("Reminders (optional):"), remindersBox);
         dialog.getDialogPane().setContent(content);
 
         ButtonType createButtonType = new ButtonType("Create", ButtonBar.ButtonData.OK_DONE);
@@ -680,21 +750,24 @@ public class GroupDetailController implements Initializable {
                 // Parse deadline with date and time
                 LocalDateTime deadline = null;
                 if (deadlineDatePicker.getValue() != null) {
-                    if (deadlineTimeField.getText().trim().isEmpty()) {
-                        deadline = deadlineDatePicker.getValue().atStartOfDay();
-                    } else {
-                        try {
-                            String[] timeParts = deadlineTimeField.getText().trim().split(":");
-                            int hour = Integer.parseInt(timeParts[0]);
-                            int minute = timeParts.length > 1 ? Integer.parseInt(timeParts[1]) : 0;
-                            deadline = deadlineDatePicker.getValue().atTime(hour, minute);
-                        } catch (Exception e) {
-                            // Invalid time format, use start of day
-                            deadline = deadlineDatePicker.getValue().atStartOfDay();
-                        }
-                    }
+                    int hour = hourSpinner.getValue() != null ? hourSpinner.getValue() : 0;
+                    int minute = minuteSpinner.getValue() != null ? minuteSpinner.getValue() : 0;
+                    deadline = deadlineDatePicker.getValue().atTime(hour, minute);
                 }
                 result.put("deadline", deadline);
+                
+                // Collect selected reminders
+                java.util.List<Integer> selectedReminders = new java.util.ArrayList<>();
+                if (reminder24h.isSelected()) selectedReminders.add(24);
+                if (reminder12h.isSelected()) selectedReminders.add(12);
+                if (reminder6h.isSelected()) selectedReminders.add(6);
+                if (reminder3h.isSelected()) selectedReminders.add(3);
+                if (reminder1h.isSelected()) selectedReminders.add(1);
+                
+                if (!selectedReminders.isEmpty()) {
+                    result.put("reminders", gson.toJson(selectedReminders));
+                }
+                
                 return result;
             }
             return null;
@@ -704,12 +777,13 @@ public class GroupDetailController implements Initializable {
             String title = (String) result.get("title");
             if (!title.isEmpty()) {
                 createTask(title, (String) result.get("description"), 
-                          (LocalDateTime) result.get("deadline"));
+                          (LocalDateTime) result.get("deadline"),
+                          (String) result.get("reminders"));
             }
         });
     }
 
-    private void createTask(String title, String description, LocalDateTime deadline) {
+    private void createTask(String title, String description, LocalDateTime deadline, String reminders) {
         CompletableFuture.runAsync(() -> {
             try {
                 Map<String, Object> request = new HashMap<>();
@@ -719,6 +793,9 @@ public class GroupDetailController implements Initializable {
                 request.put("description", description);
                 if (deadline != null) {
                     request.put("deadline", deadline.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                }
+                if (reminders != null && !reminders.isEmpty()) {
+                    request.put("reminders", reminders);
                 }
 
                 String response = ApiClient.post("/tasks", request);
@@ -974,32 +1051,109 @@ public class GroupDetailController implements Initializable {
         TextArea descriptionArea = new TextArea(task.getDescription() != null ? task.getDescription() : "");
         descriptionArea.setPrefRowCount(3);
         DatePicker deadlineDatePicker = new DatePicker();
-        TextField deadlineTimeField = new TextField();
-        deadlineTimeField.setPromptText("HH:mm (e.g., 14:30)");
-        deadlineTimeField.setMaxWidth(100);
+        
+        // Create time spinners for hours and minutes
+        Spinner<Integer> hourSpinner = new Spinner<>(0, 23, 12);
+        hourSpinner.setEditable(true);
+        hourSpinner.setPrefWidth(60);
+        hourSpinner.setMaxWidth(60);
+        hourSpinner.setStyle("-fx-font-size: 12px;");
+        
+        Spinner<Integer> minuteSpinner = new Spinner<>(0, 59, 0);
+        minuteSpinner.setEditable(true);
+        minuteSpinner.setPrefWidth(60);
+        minuteSpinner.setMaxWidth(60);
+        minuteSpinner.setStyle("-fx-font-size: 12px;");
+        
+        // Format spinners to show 2 digits
+        hourSpinner.getValueFactory().setConverter(new javafx.util.StringConverter<Integer>() {
+            @Override
+            public String toString(Integer value) {
+                return String.format("%02d", value);
+            }
+            
+            @Override
+            public Integer fromString(String string) {
+                try {
+                    return Integer.parseInt(string);
+                } catch (NumberFormatException e) {
+                    return 0;
+                }
+            }
+        });
+        
+        minuteSpinner.getValueFactory().setConverter(new javafx.util.StringConverter<Integer>() {
+            @Override
+            public String toString(Integer value) {
+                return String.format("%02d", value);
+            }
+            
+            @Override
+            public Integer fromString(String string) {
+                try {
+                    return Integer.parseInt(string);
+                } catch (NumberFormatException e) {
+                    return 0;
+                }
+            }
+        });
         
         if (task.getDeadline() != null) {
             deadlineDatePicker.setValue(task.getDeadline().toLocalDate());
-            deadlineTimeField.setText(String.format("%02d:%02d", 
-                task.getDeadline().getHour(), 
-                task.getDeadline().getMinute()));
+            hourSpinner.getValueFactory().setValue(task.getDeadline().getHour());
+            minuteSpinner.getValueFactory().setValue(task.getDeadline().getMinute());
         }
         
         ComboBox<Task.TaskStatus> statusCombo = new ComboBox<>(
                 FXCollections.observableArrayList(Task.TaskStatus.values()));
         statusCombo.setValue(task.getStatus());
+        
+        // Create reminders checkboxes
+        CheckBox reminder24h = new CheckBox("24 hours before");
+        CheckBox reminder12h = new CheckBox("12 hours before");
+        CheckBox reminder6h = new CheckBox("6 hours before");
+        CheckBox reminder3h = new CheckBox("3 hours before");
+        CheckBox reminder1h = new CheckBox("1 hour before");
+        
+        // Load existing reminders if any
+        if (task.getReminders() != null && !task.getReminders().isEmpty()) {
+            try {
+                Type listType = new TypeToken<List<Integer>>(){}.getType();
+                List<Integer> reminders = gson.fromJson(task.getReminders(), listType);
+                if (reminders != null) {
+                    if (reminders.contains(24)) reminder24h.setSelected(true);
+                    if (reminders.contains(12)) reminder12h.setSelected(true);
+                    if (reminders.contains(6)) reminder6h.setSelected(true);
+                    if (reminders.contains(3)) reminder3h.setSelected(true);
+                    if (reminders.contains(1)) reminder1h.setSelected(true);
+                }
+            } catch (Exception e) {
+                // Ignore parsing errors
+            }
+        }
 
         // Create HBox for date and time
-        HBox deadlineBox = new HBox(10);
-        deadlineBox.getChildren().addAll(deadlineDatePicker, new Label("at"), deadlineTimeField);
+        HBox deadlineBox = new HBox(5);
         deadlineBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        deadlineBox.getChildren().addAll(
+            deadlineDatePicker, 
+            new Label("at"),
+            hourSpinner,
+            new Label(":"),
+            minuteSpinner
+        );
+        
+        HBox remindersBox = new HBox(10);
+        remindersBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        remindersBox.getChildren().addAll(reminder24h, reminder12h, reminder6h, reminder3h, reminder1h);
 
         javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(10);
         content.getChildren().addAll(
                 new Label("Title:"), titleField,
                 new Label("Description:"), descriptionArea,
                 new Label("Status:"), statusCombo,
-                new Label("Deadline (optional):"), deadlineBox);
+                new Label("Deadline (optional):"), deadlineBox,
+                new Label("Reminders (optional):"), remindersBox);
         dialog.getDialogPane().setContent(content);
 
         ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
@@ -1015,21 +1169,24 @@ public class GroupDetailController implements Initializable {
                 // Parse deadline with date and time
                 LocalDateTime deadline = null;
                 if (deadlineDatePicker.getValue() != null) {
-                    if (deadlineTimeField.getText().trim().isEmpty()) {
-                        deadline = deadlineDatePicker.getValue().atStartOfDay();
-                    } else {
-                        try {
-                            String[] timeParts = deadlineTimeField.getText().trim().split(":");
-                            int hour = Integer.parseInt(timeParts[0]);
-                            int minute = timeParts.length > 1 ? Integer.parseInt(timeParts[1]) : 0;
-                            deadline = deadlineDatePicker.getValue().atTime(hour, minute);
-                        } catch (Exception e) {
-                            // Invalid time format, use start of day
-                            deadline = deadlineDatePicker.getValue().atStartOfDay();
-                        }
-                    }
+                    int hour = hourSpinner.getValue() != null ? hourSpinner.getValue() : 0;
+                    int minute = minuteSpinner.getValue() != null ? minuteSpinner.getValue() : 0;
+                    deadline = deadlineDatePicker.getValue().atTime(hour, minute);
                 }
                 result.put("deadline", deadline);
+                
+                // Collect selected reminders
+                java.util.List<Integer> selectedReminders = new java.util.ArrayList<>();
+                if (reminder24h.isSelected()) selectedReminders.add(24);
+                if (reminder12h.isSelected()) selectedReminders.add(12);
+                if (reminder6h.isSelected()) selectedReminders.add(6);
+                if (reminder3h.isSelected()) selectedReminders.add(3);
+                if (reminder1h.isSelected()) selectedReminders.add(1);
+                
+                if (!selectedReminders.isEmpty()) {
+                    result.put("reminders", gson.toJson(selectedReminders));
+                }
+                
                 return result;
             }
             return null;
@@ -1039,12 +1196,13 @@ public class GroupDetailController implements Initializable {
             updateTask(task.getTaskId(), (String) result.get("title"), 
                       (String) result.get("description"), 
                       Task.TaskStatus.valueOf((String) result.get("status")),
-                      (LocalDateTime) result.get("deadline"));
+                      (LocalDateTime) result.get("deadline"),
+                      (String) result.get("reminders"));
         });
     }
 
     private void updateTask(Long taskId, String title, String description, 
-                           Task.TaskStatus status, LocalDateTime deadline) {
+                           Task.TaskStatus status, LocalDateTime deadline, String reminders) {
         CompletableFuture.runAsync(() -> {
             try {
                 Map<String, Object> request = new HashMap<>();
@@ -1053,6 +1211,9 @@ public class GroupDetailController implements Initializable {
                 request.put("status", status.name());
                 if (deadline != null) {
                     request.put("deadline", deadline.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                }
+                if (reminders != null && !reminders.isEmpty()) {
+                    request.put("reminders", reminders);
                 }
 
                 String response = ApiClient.put("/tasks/" + taskId, request);

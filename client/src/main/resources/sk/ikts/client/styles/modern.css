@@ -379,7 +379,8 @@
 }
 
 .list-cell:hover {
-    -fx-background-color: #f8f9fa;
+    -fx-background-color: #e9ecef;
+    -fx-text-fill: #000000;
 }
 
 /* Charts */

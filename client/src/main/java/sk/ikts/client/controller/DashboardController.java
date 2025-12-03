@@ -86,7 +86,6 @@ public class DashboardController implements Initializable {
     @FXML private TableView<Task> tasksTable;
     @FXML private TableColumn<Task, String> taskTitleColumn;
     @FXML private TableColumn<Task, String> taskGroupColumn;
-    @FXML private TableColumn<Task, String> taskStatusColumn;
     @FXML private TableColumn<Task, String> taskDeadlineColumn;
     @FXML private TableColumn<Task, String> taskActionsColumn;
     @FXML private ComboBox<Group> groupFilterComboBox;
@@ -410,50 +409,55 @@ public class DashboardController implements Initializable {
                 }
             });
         }
-        if (taskStatusColumn != null) {
-            taskStatusColumn.setCellFactory(column -> new TableCell<Task, String>() {
-                @Override
-                protected void updateItem(String item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (empty || getTableRow().getItem() == null) {
-                        setGraphic(null);
-                        setText(null);
-                    } else {
-                        Task task = getTableRow().getItem();
-                        ComboBox<Task.TaskStatus> statusCombo = new ComboBox<>(
-                                FXCollections.observableArrayList(Task.TaskStatus.values()));
-                        statusCombo.setValue(task.getStatus());
-                        statusCombo.setPrefWidth(130);
-                        statusCombo.setMaxWidth(130);
-                        statusCombo.setPrefHeight(25);
-                        statusCombo.setMaxHeight(25);
-                        // Use CSS class for better styling and readability
-                        statusCombo.getStyleClass().add("combo-box");
-                        statusCombo.setStyle(
-                            "-fx-font-size: 11px; " +
-                            "-fx-padding: 2px 5px; " +
-                            "-fx-text-fill: #2c3e50;"
-                        );
-                        statusCombo.setOnAction(e -> updateTaskStatus(task.getTaskId(), statusCombo.getValue()));
-                        setGraphic(statusCombo);
-                    }
-                }
-            });
-        }
         if (taskDeadlineColumn != null) {
             taskDeadlineColumn.setCellFactory(column -> new TableCell<Task, String>() {
+                private javafx.beans.value.ChangeListener<Boolean> selectionListener;
+                
+                private void updateStyle() {
+                    if (isEmpty() || getTableRow() == null || getTableRow().getItem() == null) {
+                        return;
+                    }
+                    
+                    Task task = getTableRow().getItem();
+                    boolean isSelected = getTableRow() != null && getTableRow().isSelected();
+                    
+                    if (task.getDeadline() != null) {
+                        String deadlineText = task.getDeadline().format(dateFormatter);
+                        setText(deadlineText);
+                        if (isSelected) {
+                            setStyle("-fx-text-fill: white;");
+                        } else {
+                            setStyle("-fx-text-fill: #2c3e50;");
+                        }
+                    } else {
+                        setText("No deadline");
+                        if (isSelected) {
+                            setStyle("-fx-text-fill: white;");
+                        } else {
+                            setStyle("-fx-text-fill: #6c757d;");
+                        }
+                    }
+                }
+                
                 @Override
                 protected void updateItem(String item, boolean empty) {
                     super.updateItem(item, empty);
-                    if (empty || getTableRow().getItem() == null) {
+                    
+                    // Remove old listener if exists
+                    if (getTableRow() != null && selectionListener != null) {
+                        getTableRow().selectedProperty().removeListener(selectionListener);
+                    }
+                    
+                    if (empty || getTableRow() == null || getTableRow().getItem() == null) {
                         setText(null);
+                        setStyle("");
                     } else {
-                        Task task = getTableRow().getItem();
-                        if (task.getDeadline() != null) {
-                            setText(task.getDeadline().format(dateFormatter));
-                        } else {
-                            setText("No deadline");
-                        }
+                        updateStyle();
+                        // Add listener to selection changes on the row
+                        selectionListener = (obs, wasSelected, isSelected) -> {
+                            updateStyle();
+                        };
+                        getTableRow().selectedProperty().addListener(selectionListener);
                     }
                 }
             });
@@ -467,12 +471,38 @@ public class DashboardController implements Initializable {
                         setGraphic(null);
                     } else {
                         Task task = getTableRow().getItem();
+                        HBox hbox = new HBox(4);
+                        hbox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                        
+                        // Edit button
                         Button editButton = new Button("Edit");
-                        editButton.setPrefWidth(70);
-                        editButton.setMaxWidth(70);
-                        editButton.setStyle("-fx-font-size: 12px;");
+                        editButton.setStyle(
+                            "-fx-background-color: #000000; " +
+                            "-fx-text-fill: white; " +
+                            "-fx-font-size: 11px; " +
+                            "-fx-padding: 4px 8px; " +
+                            "-fx-background-radius: 4px; " +
+                            "-fx-cursor: hand;"
+                        );
                         editButton.setOnAction(e -> showEditTaskDialog(task));
-                        setGraphic(editButton);
+                        
+                        // Status ComboBox
+                        ComboBox<Task.TaskStatus> statusCombo = new ComboBox<>(
+                                FXCollections.observableArrayList(Task.TaskStatus.values()));
+                        statusCombo.setValue(task.getStatus());
+                        statusCombo.setStyle(
+                            "-fx-background-color: white; " +
+                            "-fx-border-color: #ced4da; " +
+                            "-fx-border-radius: 4px; " +
+                            "-fx-background-radius: 4px; " +
+                            "-fx-padding: 2px 6px; " +
+                            "-fx-font-size: 11px; " +
+                            "-fx-pref-width: 100px;"
+                        );
+                        statusCombo.setOnAction(e -> updateTaskStatus(task.getTaskId(), statusCombo.getValue()));
+                        
+                        hbox.getChildren().addAll(editButton, statusCombo);
+                        setGraphic(hbox);
                     }
                 }
             });
@@ -832,7 +862,7 @@ public class DashboardController implements Initializable {
     /**
      * Create a new task
      */
-    public void createTask(Long groupId, String title, String description, LocalDateTime deadline) {
+    public void createTask(Long groupId, String title, String description, LocalDateTime deadline, String reminders) {
         if (userId == null) return;
 
         CompletableFuture.runAsync(() -> {
@@ -844,6 +874,9 @@ public class DashboardController implements Initializable {
                 request.put("description", description);
                 if (deadline != null) {
                     request.put("deadline", deadline.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                }
+                if (reminders != null && !reminders.isEmpty()) {
+                    request.put("reminders", reminders);
                 }
 
                 String response = ApiClient.post("/tasks", request);
@@ -999,13 +1032,84 @@ public class DashboardController implements Initializable {
         descriptionArea.setPromptText("Description");
         descriptionArea.setPrefRowCount(3);
         DatePicker deadlinePicker = new DatePicker();
+        
+        // Create time spinners for hours and minutes
+        Spinner<Integer> hourSpinner = new Spinner<>(0, 23, 12);
+        hourSpinner.setEditable(true);
+        hourSpinner.setPrefWidth(60);
+        hourSpinner.setMaxWidth(60);
+        hourSpinner.setStyle("-fx-font-size: 12px;");
+        
+        Spinner<Integer> minuteSpinner = new Spinner<>(0, 59, 0);
+        minuteSpinner.setEditable(true);
+        minuteSpinner.setPrefWidth(60);
+        minuteSpinner.setMaxWidth(60);
+        minuteSpinner.setStyle("-fx-font-size: 12px;");
+        
+        // Format spinners to show 2 digits
+        hourSpinner.getValueFactory().setConverter(new StringConverter<Integer>() {
+            @Override
+            public String toString(Integer value) {
+                return String.format("%02d", value);
+            }
+            
+            @Override
+            public Integer fromString(String string) {
+                try {
+                    return Integer.parseInt(string);
+                } catch (NumberFormatException e) {
+                    return 0;
+                }
+            }
+        });
+        
+        minuteSpinner.getValueFactory().setConverter(new StringConverter<Integer>() {
+            @Override
+            public String toString(Integer value) {
+                return String.format("%02d", value);
+            }
+            
+            @Override
+            public Integer fromString(String string) {
+                try {
+                    return Integer.parseInt(string);
+                } catch (NumberFormatException e) {
+                    return 0;
+                }
+            }
+        });
+        
+        // Create HBox for date and time
+        HBox deadlineBox = new HBox(5);
+        deadlineBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        deadlineBox.getChildren().addAll(
+            deadlinePicker, 
+            new Label("at"),
+            hourSpinner,
+            new Label(":"),
+            minuteSpinner
+        );
+        
+        // Create reminders checkboxes
+        CheckBox reminder24h = new CheckBox("24 hours before");
+        CheckBox reminder12h = new CheckBox("12 hours before");
+        CheckBox reminder6h = new CheckBox("6 hours before");
+        CheckBox reminder3h = new CheckBox("3 hours before");
+        CheckBox reminder1h = new CheckBox("1 hour before");
+        
+        reminder24h.setSelected(true); // Default: 24h reminder
+        
+        HBox remindersBox = new HBox(10);
+        remindersBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        remindersBox.getChildren().addAll(reminder24h, reminder12h, reminder6h, reminder3h, reminder1h);
 
         javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(10);
         content.getChildren().addAll(
                 new Label("Group:"), groupCombo,
                 new Label("Title:"), titleField,
                 new Label("Description:"), descriptionArea,
-                new Label("Deadline (optional):"), deadlinePicker);
+                new Label("Deadline (optional):"), deadlineBox,
+                new Label("Reminders (optional):"), remindersBox);
         dialog.getDialogPane().setContent(content);
 
         ButtonType createButtonType = new ButtonType("Create", ButtonBar.ButtonData.OK_DONE);
@@ -1017,8 +1121,28 @@ public class DashboardController implements Initializable {
                 result.put("groupId", groupCombo.getValue() != null ? groupCombo.getValue().getGroupId() : null);
                 result.put("title", titleField.getText().trim());
                 result.put("description", descriptionArea.getText().trim());
-                result.put("deadline", deadlinePicker.getValue() != null ? 
-                    deadlinePicker.getValue().atStartOfDay() : null);
+                
+                // Parse deadline with date and time
+                LocalDateTime deadline = null;
+                if (deadlinePicker.getValue() != null) {
+                    int hour = hourSpinner.getValue() != null ? hourSpinner.getValue() : 0;
+                    int minute = minuteSpinner.getValue() != null ? minuteSpinner.getValue() : 0;
+                    deadline = deadlinePicker.getValue().atTime(hour, minute);
+                }
+                result.put("deadline", deadline);
+                
+                // Collect selected reminders
+                java.util.List<Integer> selectedReminders = new java.util.ArrayList<>();
+                if (reminder24h.isSelected()) selectedReminders.add(24);
+                if (reminder12h.isSelected()) selectedReminders.add(12);
+                if (reminder6h.isSelected()) selectedReminders.add(6);
+                if (reminder3h.isSelected()) selectedReminders.add(3);
+                if (reminder1h.isSelected()) selectedReminders.add(1);
+                
+                if (!selectedReminders.isEmpty()) {
+                    result.put("reminders", gson.toJson(selectedReminders));
+                }
+                
                 return result;
             }
             return null;
@@ -1029,7 +1153,8 @@ public class DashboardController implements Initializable {
             String title = (String) result.get("title");
             if (groupId != null && !title.isEmpty()) {
                 createTask(groupId, title, (String) result.get("description"), 
-                          (LocalDateTime) result.get("deadline"));
+                          (LocalDateTime) result.get("deadline"),
+                          (String) result.get("reminders"));
             }
         });
     }

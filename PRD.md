@@ -1,5 +1,5 @@
 # 📘 PRD – CALLSTUDY  
-**Autor:** Jaroslav Birčák  
+**Autor:** Jaroslav Birčák, Tomas Cingel
 **Predmet:** Semestrálna práca – Klient-server architektúra  
 **Rok:** 2. ročník  
 

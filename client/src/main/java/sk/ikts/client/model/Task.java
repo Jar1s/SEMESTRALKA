@@ -15,11 +15,12 @@ public class Task {
     private TaskStatus status;
     private LocalDateTime deadline;
     private LocalDateTime createdAt;
+    private String reminders; // JSON array of hours before deadline, e.g., "[24, 6, 1]"
 
     public Task() {}
 
     public Task(Long taskId, Long groupId, Long createdBy, String title, String description,
-                TaskStatus status, LocalDateTime deadline, LocalDateTime createdAt) {
+                TaskStatus status, LocalDateTime deadline, LocalDateTime createdAt, String reminders) {
         this.taskId = taskId;
         this.groupId = groupId;
         this.createdBy = createdBy;
@@ -28,6 +29,7 @@ public class Task {
         this.status = status;
         this.deadline = deadline;
         this.createdAt = createdAt;
+        this.reminders = reminders;
     }
 
     public Long getTaskId() {
@@ -92,6 +94,14 @@ public class Task {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getReminders() {
+        return reminders;
+    }
+
+    public void setReminders(String reminders) {
+        this.reminders = reminders;
     }
 }
 

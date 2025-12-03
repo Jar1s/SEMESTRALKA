@@ -38,6 +38,9 @@ public class Task {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "reminders", columnDefinition = "TEXT")
+    private String reminders; // JSON array of hours before deadline, e.g., "[24, 6, 1]"
+
     // Enum for task status
     public enum TaskStatus {
         OPEN,
@@ -123,6 +126,14 @@ public class Task {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getReminders() {
+        return reminders;
+    }
+
+    public void setReminders(String reminders) {
+        this.reminders = reminders;
     }
 }
 

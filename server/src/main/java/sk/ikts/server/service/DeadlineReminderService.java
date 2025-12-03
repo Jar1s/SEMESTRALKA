@@ -1,14 +1,18 @@
 package sk.ikts.server.service;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import sk.ikts.server.model.Task;
 import sk.ikts.server.repository.TaskRepository;
 
+import java.lang.reflect.Type;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,6 +29,8 @@ public class DeadlineReminderService {
 
     @Autowired
     private NotificationService notificationService;
+    
+    private final Gson gson = new Gson();
 
     // Track which tasks have already been notified at which threshold to avoid duplicate notifications
     // Format: "taskId_threshold" where threshold is 24, 6, or 1
@@ -53,59 +59,52 @@ public class DeadlineReminderService {
             long minutesUntilDeadline = ChronoUnit.MINUTES.between(now, task.getDeadline());
             
             String taskKey = task.getTaskId().toString();
-            String dailyKey = taskKey + "_daily_" + today; // Key for daily notification
             
-            // Check if we already notified today
-            boolean alreadyNotifiedToday = notifiedTasks.contains(dailyKey);
+            // Get custom reminders or use defaults
+            List<Integer> reminders = getRemindersForTask(task);
             
-            // Send notification based on time remaining
-            if (hoursUntilDeadline <= 1 && minutesUntilDeadline > 0) {
-                // Less than 1 hour remaining - urgent notification (only once)
-                String urgentKey = taskKey + "_urgent";
-                if (!notifiedTasks.contains(urgentKey)) {
-                    notificationService.notifyDeadlineApproaching(
-                        task.getGroupId(),
-                        task.getTaskId(),
-                        task.getTitle(),
-                        minutesUntilDeadline,
-                        true
-                    );
-                    notifiedTasks.add(urgentKey);
-                    notifiedTasks.add(dailyKey); // Mark as notified today
-                }
-            } else if (hoursUntilDeadline <= 6 && hoursUntilDeadline > 1) {
-                // Less than 6 hours remaining - warning notification (once per day)
-                if (!alreadyNotifiedToday) {
-                    notificationService.notifyDeadlineApproaching(
-                        task.getGroupId(),
-                        task.getTaskId(),
-                        task.getTitle(),
-                        hoursUntilDeadline,
-                        false
-                    );
-                    notifiedTasks.add(dailyKey);
-                }
-            } else if (hoursUntilDeadline <= 24 && hoursUntilDeadline > 6) {
-                // Less than 24 hours remaining - reminder notification (once per day)
-                if (!alreadyNotifiedToday) {
-                    notificationService.notifyDeadlineReminder(
-                        task.getGroupId(),
-                        task.getTaskId(),
-                        task.getTitle(),
-                        hoursUntilDeadline
-                    );
-                    notifiedTasks.add(dailyKey);
-                }
-            } else if (hoursUntilDeadline <= 72 && hoursUntilDeadline > 24) {
-                // Between 24 and 72 hours (1-3 days) - daily reminder
-                if (!alreadyNotifiedToday) {
-                    notificationService.notifyDeadlineReminder(
-                        task.getGroupId(),
-                        task.getTaskId(),
-                        task.getTitle(),
-                        hoursUntilDeadline
-                    );
-                    notifiedTasks.add(dailyKey);
+            // Check each reminder threshold
+            for (Integer reminderHours : reminders) {
+                if (reminderHours == null) continue;
+                
+                // Check if we're within the reminder window (within 1 hour of the reminder time)
+                boolean isWithinReminderWindow = hoursUntilDeadline <= reminderHours && 
+                                                hoursUntilDeadline > (reminderHours - 1);
+                
+                if (isWithinReminderWindow) {
+                    String reminderKey = taskKey + "_reminder_" + reminderHours;
+                    
+                    // Only send if we haven't sent this reminder yet
+                    if (!notifiedTasks.contains(reminderKey)) {
+                        if (reminderHours <= 1 && minutesUntilDeadline > 0) {
+                            // Less than 1 hour - urgent notification
+                            notificationService.notifyDeadlineApproaching(
+                                task.getGroupId(),
+                                task.getTaskId(),
+                                task.getTitle(),
+                                minutesUntilDeadline,
+                                true
+                            );
+                        } else if (reminderHours <= 6) {
+                            // Warning notification
+                            notificationService.notifyDeadlineApproaching(
+                                task.getGroupId(),
+                                task.getTaskId(),
+                                task.getTitle(),
+                                hoursUntilDeadline,
+                                false
+                            );
+                        } else {
+                            // Regular reminder
+                            notificationService.notifyDeadlineReminder(
+                                task.getGroupId(),
+                                task.getTaskId(),
+                                task.getTitle(),
+                                hoursUntilDeadline
+                            );
+                        }
+                        notifiedTasks.add(reminderKey);
+                    }
                 }
             }
         }
@@ -148,6 +147,29 @@ public class DeadlineReminderService {
         });
     }
 
+    /**
+     * Get reminders for a task - either custom reminders or default ones
+     */
+    private List<Integer> getRemindersForTask(Task task) {
+        if (task.getReminders() != null && !task.getReminders().isEmpty()) {
+            try {
+                Type listType = new TypeToken<List<Integer>>(){}.getType();
+                List<Integer> customReminders = gson.fromJson(task.getReminders(), listType);
+                if (customReminders != null && !customReminders.isEmpty()) {
+                    return customReminders;
+                }
+            } catch (Exception e) {
+                // If parsing fails, fall back to defaults
+            }
+        }
+        // Default reminders: 24h, 6h, 1h
+        List<Integer> defaults = new ArrayList<>();
+        defaults.add(24);
+        defaults.add(6);
+        defaults.add(1);
+        return defaults;
+    }
+    
     /**
      * Check for overdue tasks every hour
      */

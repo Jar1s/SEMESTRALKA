@@ -36,6 +36,9 @@ public class TaskService {
         if (request.getDeadline() != null) {
             task.setDeadline(request.getDeadline());
         }
+        if (request.getReminders() != null) {
+            task.setReminders(request.getReminders());
+        }
         task = taskRepository.save(task);
         
         // Send notification about new task
@@ -96,15 +99,16 @@ public class TaskService {
     }
 
     /**
-     * Update task (title, description, status, deadline)
+     * Update task (title, description, status, deadline, reminders)
      * @param taskId task ID
      * @param title new title (can be null to keep existing)
      * @param description new description (can be null to keep existing)
      * @param status new status (can be null to keep existing)
      * @param deadline new deadline (can be null to keep existing)
+     * @param reminders new reminders (can be null to keep existing)
      * @return TaskDTO or null if task doesn't exist
      */
-    public TaskDTO updateTask(Long taskId, String title, String description, Task.TaskStatus status, LocalDateTime deadline) {
+    public TaskDTO updateTask(Long taskId, String title, String description, Task.TaskStatus status, LocalDateTime deadline, String reminders) {
         Optional<Task> taskOpt = taskRepository.findById(taskId);
         if (taskOpt.isEmpty()) {
             return null;
@@ -131,6 +135,9 @@ public class TaskService {
         if (deadline != null) {
             task.setDeadline(deadline);
         }
+        if (reminders != null) {
+            task.setReminders(reminders);
+        }
         
         task = taskRepository.save(task);
         return convertToDTO(task);
@@ -148,7 +155,8 @@ public class TaskService {
                 task.getDescription(),
                 task.getStatus(),
                 task.getDeadline(),
-                task.getCreatedAt()
+                task.getCreatedAt(),
+                task.getReminders()
         );
     }
 }
