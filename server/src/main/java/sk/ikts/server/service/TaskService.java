@@ -25,6 +25,9 @@ public class TaskService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private ActivityLogService activityLogService;
+
     /**
      * Create a new task
      * @param request task creation request
@@ -40,6 +43,10 @@ public class TaskService {
             task.setReminders(request.getReminders());
         }
         task = taskRepository.save(task);
+        
+        // Log activity
+        activityLogService.logActivity(request.getCreatedBy(), "CREATE_TASK", 
+                "Created task: " + task.getTitle() + " (ID: " + task.getTaskId() + ") in group " + request.getGroupId());
         
         // Send notification about new task
         notificationService.notifyNewTask(request.getGroupId(), task.getTaskId(), task.getTitle());
@@ -87,6 +94,10 @@ public class TaskService {
         task.setStatus(status);
         task = taskRepository.save(task);
 
+        // Log activity (we'll use createdBy as the user who changed status)
+        activityLogService.logActivity(task.getCreatedBy(), "UPDATE_TASK_STATUS", 
+                "Changed task status: " + task.getTitle() + " (ID: " + taskId + ") to " + status.toString());
+
         // Send notification about status change
         notificationService.notifyTaskStatusChange(
                 task.getGroupId(), 
@@ -124,6 +135,9 @@ public class TaskService {
         }
         if (status != null) {
             task.setStatus(status);
+            // Log activity
+            activityLogService.logActivity(task.getCreatedBy(), "UPDATE_TASK_STATUS", 
+                    "Changed task status: " + task.getTitle() + " (ID: " + taskId + ") to " + status.toString());
             // Send notification about status change
             notificationService.notifyTaskStatusChange(
                     task.getGroupId(), 
@@ -134,9 +148,17 @@ public class TaskService {
         }
         if (deadline != null) {
             task.setDeadline(deadline);
+            // Log activity
+            activityLogService.logActivity(task.getCreatedBy(), "UPDATE_TASK_DEADLINE", 
+                    "Updated deadline for task: " + task.getTitle() + " (ID: " + taskId + ")");
         }
         if (reminders != null) {
             task.setReminders(reminders);
+        }
+        if (title != null && !title.trim().isEmpty()) {
+            // Log activity for title/description update
+            activityLogService.logActivity(task.getCreatedBy(), "UPDATE_TASK", 
+                    "Updated task: " + task.getTitle() + " (ID: " + taskId + ")");
         }
         
         task = taskRepository.save(task);

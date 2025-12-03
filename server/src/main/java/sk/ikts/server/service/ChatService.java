@@ -24,6 +24,9 @@ public class ChatService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private ActivityLogService activityLogService;
+
     /**
      * Create a new chat message
      */
@@ -39,6 +42,12 @@ public class ChatService {
         );
 
         chatMessage = chatMessageRepository.save(chatMessage);
+        
+        // Log activity
+        activityLogService.logActivity(request.getUserId(), "SEND_CHAT_MESSAGE", 
+                "Sent message in group " + request.getGroupId() + ": " + 
+                (request.getMessage().length() > 50 ? request.getMessage().substring(0, 50) + "..." : request.getMessage()));
+        
         return convertToDTO(chatMessage);
     }
 

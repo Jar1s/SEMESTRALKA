@@ -7,8 +7,10 @@ import org.springframework.web.bind.annotation.*;
 import sk.ikts.server.dto.CreateTaskRequest;
 import sk.ikts.server.dto.TaskDTO;
 import sk.ikts.server.model.Task;
+import sk.ikts.server.service.DeadlineReminderService;
 import sk.ikts.server.service.TaskService;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +25,9 @@ public class TaskController {
 
     @Autowired
     private TaskService taskService;
+    
+    @Autowired
+    private DeadlineReminderService deadlineReminderService;
 
     /**
      * Create a new task
@@ -129,6 +134,27 @@ public class TaskController {
             return ResponseEntity.ok(updatedTask);
         } catch (Exception e) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Test endpoint to manually trigger deadline check
+     * POST /api/tasks/test/check-deadlines
+     */
+    @PostMapping("/test/check-deadlines")
+    public ResponseEntity<Map<String, String>> testCheckDeadlines() {
+        try {
+            deadlineReminderService.checkUpcomingDeadlines();
+            deadlineReminderService.checkOverdueTasks();
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("message", "Deadline check executed manually");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(500).body(response);
         }
     }
 }

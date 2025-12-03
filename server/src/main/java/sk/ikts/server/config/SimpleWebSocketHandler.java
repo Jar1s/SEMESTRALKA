@@ -47,17 +47,24 @@ public class SimpleWebSocketHandler extends TextWebSocketHandler {
         String json = gson.toJson(notification);
         TextMessage message = new TextMessage(json);
         
+        System.out.println("Broadcasting notification to " + sessions.size() + " connected sessions: " + notification.getType() + " - " + notification.getMessage());
+        
         sessions.removeIf(session -> {
             try {
                 if (session.isOpen()) {
                     session.sendMessage(message);
+                    System.out.println("Sent notification to session: " + session.getId());
                     return false;
+                } else {
+                    System.out.println("Session " + session.getId() + " is closed");
                 }
             } catch (IOException e) {
                 System.err.println("Error sending WebSocket message: " + e.getMessage());
             }
             return true; // Remove closed sessions
         });
+        
+        System.out.println("Remaining active sessions: " + sessions.size());
     }
 
     /**

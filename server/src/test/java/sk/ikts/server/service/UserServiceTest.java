@@ -21,7 +21,9 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -33,6 +35,9 @@ class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private ActivityLogService activityLogService;
 
     @InjectMocks
     private UserService userService;
@@ -70,6 +75,7 @@ class UserServiceTest {
             user.setUserId(1L);
             return user;
         });
+        doNothing().when(activityLogService).logActivity(anyLong(), anyString(), anyString());
 
         // Act
         UserDTO result = userService.register(registerRequest);
@@ -105,6 +111,7 @@ class UserServiceTest {
         testUser.setPasswordHash(hashedPassword);
         
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
+        doNothing().when(activityLogService).logActivity(anyLong(), anyString(), anyString());
 
         // Act
         var result = userService.login(loginRequest);
@@ -114,6 +121,7 @@ class UserServiceTest {
         assertTrue(result.isSuccess());
         assertNotNull(result.getUser());
         verify(userRepository).findByEmail(loginRequest.getEmail());
+        verify(activityLogService).logActivity(anyLong(), eq("LOGIN"), anyString());
     }
 
     @Test

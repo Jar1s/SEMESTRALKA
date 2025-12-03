@@ -270,17 +270,36 @@ public class DashboardController implements Initializable {
                         Button viewButton = new Button("View");
                         viewButton.setOnAction(e -> DashboardController.this.viewGroupDetails(group));
                         
+                        // Check if user is owner (can edit/delete)
+                        boolean isOwner = userId != null && group.getCreatedBy() != null && 
+                                        group.getCreatedBy().equals(userId);
+                        
                         // Check if user is already a member
                         List<Group> myGroupsCopy = new ArrayList<>(myGroupsList);
                         boolean isMember = myGroupsCopy.stream()
-                                .anyMatch(g -> g.getGroupId().equals(group.getGroupId()));
+                                .anyMatch(g -> g.getGroupId() != null && group.getGroupId() != null && 
+                                              g.getGroupId().equals(group.getGroupId()));
                         
-                        if (!isMember) {
+                        if (isOwner) {
+                            // Owner can edit and delete
+                            Button editButton = new Button("Edit");
+                            editButton.setOnAction(e -> DashboardController.this.showEditGroupDialog(group));
+                            Button deleteButton = new Button("Delete");
+                            deleteButton.setStyle("-fx-background-color: #000000; -fx-text-fill: white;");
+                            deleteButton.setOnAction(e -> DashboardController.this.deleteGroup(group));
+                            hbox.getChildren().addAll(viewButton, editButton, deleteButton);
+                        } else if (!isMember && userId != null) {
+                            // Not a member - can join
                             Button joinButton = new Button("Join");
                             joinButton.setStyle("-fx-background-color: #000000; -fx-text-fill: white;");
-                            joinButton.setOnAction(e -> DashboardController.this.handleJoinGroup(group));
+                            joinButton.setOnAction(e -> {
+                                handleJoinGroup(group);
+                                // Disable button immediately to prevent double-click
+                                joinButton.setDisable(true);
+                            });
                             hbox.getChildren().addAll(viewButton, joinButton);
                         } else {
+                            // Member but not owner - can only view
                             hbox.getChildren().add(viewButton);
                         }
                         setGraphic(hbox);
@@ -523,6 +542,7 @@ public class DashboardController implements Initializable {
         webSocketClient = new NotificationWebSocketClient();
         webSocketClient.connect(notification -> {
             // Handle notification
+            System.out.println("Received notification: " + notification.getType() + " - " + notification.getMessage());
             Platform.runLater(() -> {
                 if (statusLabel != null) {
                     statusLabel.setText("🔔 " + notification.getMessage());
@@ -545,6 +565,9 @@ public class DashboardController implements Initializable {
                     loadMyGroups();
                     updateStatistics();
                 }
+                
+                // Show toast notification
+                NotificationManager.showInfo(notification.getMessage());
                 
                 // Show toast notification with appropriate type
                 if ("DEADLINE_URGENT".equals(notificationType) || 
@@ -600,10 +623,16 @@ public class DashboardController implements Initializable {
         return CompletableFuture.runAsync(() -> {
             try {
                 String response = ApiClient.get("/groups");
+                System.out.println("All Groups API response: " + response);
                 Type listType = new TypeToken<List<Group>>(){}.getType();
                 List<Group> groups = gson.fromJson(response, listType);
                 
                 System.out.println("Loaded " + (groups != null ? groups.size() : 0) + " all groups from API");
+                if (groups != null) {
+                    for (Group g : groups) {
+                        System.out.println("  - Group: " + g.getName() + " (ID: " + g.getGroupId() + ")");
+                    }
+                }
                 
                 Platform.runLater(() -> {
                     allGroupsList.clear();
@@ -613,7 +642,10 @@ public class DashboardController implements Initializable {
                         System.out.println("Added " + groups.size() + " groups to All Groups table");
                         updateGroupFilter();
                     } else {
-                        System.out.println("No groups found or groups list is null");
+                        System.out.println("No groups found or groups list is null/empty");
+                        if (statusLabel != null) {
+                            statusLabel.setText("No groups found. Click 'Create Group' to create one.");
+                        }
                     }
                 });
             } catch (Exception e) {
@@ -1405,10 +1437,18 @@ public class DashboardController implements Initializable {
                 ApiClient.post("/groups/" + group.getGroupId() + "/join", request);
                 
                 Platform.runLater(() -> {
-                    // Reload both lists
-                    loadAllGroups();
-                    loadMyGroups();
-                    NotificationManager.showSuccess("Successfully joined group: " + group.getName());
+                    // Reload both lists and refresh table to update Join button visibility
+                    loadAllGroups().thenRun(() -> {
+                        Platform.runLater(() -> {
+                            loadMyGroups().thenRun(() -> {
+                                Platform.runLater(() -> {
+                                    // Refresh the table to update cell renderers
+                                    allGroupsTable.refresh();
+                                    NotificationManager.showSuccess("Successfully joined group: " + group.getName());
+                                });
+                            });
+                        });
+                    });
                 });
             } catch (Exception e) {
                 Platform.runLater(() -> {

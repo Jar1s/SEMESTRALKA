@@ -41,6 +41,12 @@ class GroupServiceTest {
     @Mock
     private MembershipRepository membershipRepository;
 
+    @Mock
+    private ActivityLogService activityLogService;
+
+    @Mock
+    private NotificationService notificationService;
+
     @InjectMocks
     private GroupService groupService;
 
@@ -81,6 +87,8 @@ class GroupServiceTest {
             Membership membership = invocation.getArgument(0);
             return membership;
         });
+        doNothing().when(activityLogService).logActivity(anyLong(), anyString(), anyString());
+        doNothing().when(notificationService).notifyNewGroup(anyLong(), anyString());
 
         // Act
         GroupDTO result = groupService.createGroup(createGroupRequest);

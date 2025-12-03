@@ -25,10 +25,14 @@ public class NotificationService {
      * @param notification notification to send
      */
     public void notifyGroup(Long groupId, NotificationDTO notification) {
+        System.out.println("Sending notification to group " + groupId + ": " + notification.getType() + " - " + notification.getMessage());
         messagingTemplate.convertAndSend("/topic/group/" + groupId, notification);
         // Also send via simple WebSocket (all clients receive group notifications)
         if (simpleWebSocketHandler != null) {
+            System.out.println("Broadcasting notification via SimpleWebSocketHandler");
             simpleWebSocketHandler.broadcastNotification(notification);
+        } else {
+            System.out.println("WARNING: SimpleWebSocketHandler is null!");
         }
     }
 

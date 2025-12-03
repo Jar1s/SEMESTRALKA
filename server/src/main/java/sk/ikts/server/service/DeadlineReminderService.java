@@ -47,16 +47,25 @@ public class DeadlineReminderService {
         LocalDate today = LocalDate.now();
         LocalDateTime in3Days = now.plusDays(3); // 3 days = 72 hours
         
+        System.out.println("=== Checking deadlines at " + now + " ===");
+        
         // Find tasks with deadlines within the next 3 days
         List<Task> upcomingTasks = taskRepository.findTasksWithUpcomingDeadlines(now, in3Days);
+        System.out.println("Found " + upcomingTasks.size() + " tasks with upcoming deadlines");
         
         for (Task task : upcomingTasks) {
             if (task.getDeadline() == null || task.getStatus() == Task.TaskStatus.DONE || task.getTaskId() == null) {
+                System.out.println("Skipping task " + task.getTaskId() + ": deadline=" + task.getDeadline() + 
+                                 ", status=" + task.getStatus());
                 continue;
             }
             
             long hoursUntilDeadline = ChronoUnit.HOURS.between(now, task.getDeadline());
             long minutesUntilDeadline = ChronoUnit.MINUTES.between(now, task.getDeadline());
+            
+            System.out.println("Checking task " + task.getTaskId() + " (" + task.getTitle() + "): " + 
+                             "deadline=" + task.getDeadline() + ", hoursUntil=" + hoursUntilDeadline + 
+                             ", minutesUntil=" + minutesUntilDeadline);
             
             String taskKey = task.getTaskId().toString();
             
@@ -67,15 +76,32 @@ public class DeadlineReminderService {
             for (Integer reminderHours : reminders) {
                 if (reminderHours == null) continue;
                 
-                // Check if we're within the reminder window (within 1 hour of the reminder time)
-                boolean isWithinReminderWindow = hoursUntilDeadline <= reminderHours && 
-                                                hoursUntilDeadline > (reminderHours - 1);
+                // Check if we're within the reminder window
+                // For reminderHours=1, send notification when deadline is between 0 and 1 hour away
+                // We check if deadline is <= reminderHours hours away AND > (reminderHours - 1) hours away
+                // But we also allow a 5-minute grace period to catch notifications that might be slightly late
+                boolean isWithinReminderWindow = false;
+                
+                if (reminderHours <= 1) {
+                    // For 1 hour reminders, check if deadline is between 0 and 1 hour away (with 5 min grace)
+                    isWithinReminderWindow = minutesUntilDeadline > 0 && minutesUntilDeadline <= (reminderHours * 60 + 5);
+                } else {
+                    // For longer reminders, check if deadline is within the reminder window
+                    // Allow some grace period (15 minutes) to catch notifications
+                    double hoursWithGrace = reminderHours + 0.25; // 15 minutes grace
+                    double hoursMinusGrace = Math.max(0, reminderHours - 1 - 0.25); // 15 minutes grace
+                    isWithinReminderWindow = hoursUntilDeadline <= hoursWithGrace && hoursUntilDeadline > hoursMinusGrace;
+                }
                 
                 if (isWithinReminderWindow) {
                     String reminderKey = taskKey + "_reminder_" + reminderHours;
                     
                     // Only send if we haven't sent this reminder yet
                     if (!notifiedTasks.contains(reminderKey)) {
+                        System.out.println("Sending deadline reminder for task " + task.getTaskId() + 
+                                         " (" + task.getTitle() + "): " + reminderHours + "h reminder, " + 
+                                         hoursUntilDeadline + "h remaining");
+                        
                         if (reminderHours <= 1 && minutesUntilDeadline > 0) {
                             // Less than 1 hour - urgent notification
                             notificationService.notifyDeadlineApproaching(

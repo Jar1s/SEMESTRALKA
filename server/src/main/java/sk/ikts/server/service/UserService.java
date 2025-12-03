@@ -25,6 +25,9 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private ActivityLogService activityLogService;
+
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     /**
@@ -46,9 +49,24 @@ public class UserService {
             User user = new User(request.getEmail(), request.getName(), hashedPassword);
             user.setAuthProvider(AuthProvider.LOCAL); // Set auth provider to LOCAL for regular registration
             user = userRepository.save(user);
+            
+            // Flush to ensure user is persisted
+            userRepository.flush();
+            
+            System.out.println("User saved with ID: " + user.getUserId() + ", email: " + user.getEmail());
 
             // Return DTO
-            return new UserDTO(user.getUserId(), user.getEmail(), user.getName());
+            UserDTO userDTO = new UserDTO(user.getUserId(), user.getEmail(), user.getName());
+            
+            // Log activity after successful save (in separate try-catch to not affect registration)
+            try {
+                activityLogService.logActivity(user.getUserId(), "REGISTER", "User registered: " + user.getEmail());
+            } catch (Exception logError) {
+                // Don't fail registration if logging fails
+                System.err.println("Failed to log registration activity: " + logError.getMessage());
+            }
+
+            return userDTO;
         } catch (Exception e) {
             System.err.println("Error in register service: " + e.getMessage());
             e.printStackTrace();
@@ -74,6 +92,9 @@ public class UserService {
         if (user.getPasswordHash() == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             return new LoginResponse(false, "Invalid email or password", null);
         }
+
+        // Log activity
+        activityLogService.logActivity(user.getUserId(), "LOGIN", "User logged in: " + user.getEmail());
 
         // Return success response
         UserDTO userDTO = new UserDTO(user.getUserId(), user.getEmail(), user.getName());

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import sk.ikts.server.model.Resource;
 import sk.ikts.server.repository.ResourceRepository;
+import sk.ikts.server.service.ActivityLogService;
 import sk.ikts.server.service.NotificationService;
 
 import java.io.File;
@@ -35,6 +36,9 @@ public class ResourceController {
     
     @Autowired
     private NotificationService notificationService;
+
+    @Autowired
+    private ActivityLogService activityLogService;
 
     private static final String UPLOAD_DIR = "uploads/";
 
@@ -96,6 +100,10 @@ public class ResourceController {
 
             resource = resourceRepository.save(resource);
             
+            // Log activity
+            activityLogService.logActivity(uploadedBy, "UPLOAD_RESOURCE", 
+                    "Uploaded file: " + title + " (ID: " + resource.getResourceId() + ") to group " + groupId);
+            
             // Send notification
             try {
                 notificationService.notifyGroup(groupId, 
@@ -136,6 +144,10 @@ public class ResourceController {
             resource.setUploadedAt(LocalDateTime.now());
 
             resource = resourceRepository.save(resource);
+            
+            // Log activity
+            activityLogService.logActivity(uploadedBy, "SHARE_URL", 
+                    "Shared URL: " + title + " (ID: " + resource.getResourceId() + ") in group " + groupId);
             
             // Send notification
             try {
@@ -205,6 +217,10 @@ public class ResourceController {
             }
         }
 
+        // Log activity before deletion
+        activityLogService.logActivity(resource.getUploadedBy(), "DELETE_RESOURCE", 
+                "Deleted resource: " + resource.getTitle() + " (ID: " + id + ")");
+        
         resourceRepository.delete(resource);
         return ResponseEntity.noContent().build();
     }
