@@ -35,6 +35,9 @@ public class GroupService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private ActivityLogService activityLogService;
+
     /**
      * Create a new group
      * @param request group creation request
@@ -60,6 +63,10 @@ public class GroupService {
             // Create membership for creator as ADMIN
             Membership membership = new Membership(request.getCreatedBy(), group.getGroupId(), Membership.Role.ADMIN);
             membership = membershipRepository.save(membership);
+
+            // Log activity
+            activityLogService.logActivity(request.getCreatedBy(), "CREATE_GROUP", 
+                    "Created group: " + group.getName() + " (ID: " + group.getGroupId() + ")");
 
             // Send notification about new group
             try {
@@ -129,6 +136,10 @@ public class GroupService {
         group.setDescription(request.getDescription());
         group = groupRepository.save(group);
 
+        // Log activity
+        activityLogService.logActivity(request.getCreatedBy(), "UPDATE_GROUP", 
+                "Updated group: " + group.getName() + " (ID: " + groupId + ")");
+
         return convertToDTO(group);
     }
 
@@ -141,6 +152,16 @@ public class GroupService {
         if (!groupRepository.existsById(groupId)) {
             return false;
         }
+        
+        // Get group info before deletion for logging
+        Optional<Group> groupOpt = groupRepository.findById(groupId);
+        if (groupOpt.isPresent()) {
+            Group group = groupOpt.get();
+            // Log activity
+            activityLogService.logActivity(group.getCreatedBy(), "DELETE_GROUP", 
+                    "Deleted group: " + group.getName() + " (ID: " + groupId + ")");
+        }
+        
         groupRepository.deleteById(groupId);
         return true;
     }
@@ -178,11 +199,11 @@ public class GroupService {
     }
 
     /**
-     * Get all members of a group with their names
+     * Get all members of a group with their names and roles
      * @param groupId group ID
-     * @return List of UserDTOs representing group members
+     * @return List of MemberDTOs representing group members with roles
      */
-    public List<UserDTO> getGroupMembers(Long groupId) {
+    public List<sk.ikts.server.dto.MemberDTO> getGroupMembers(Long groupId) {
         try {
             List<Membership> memberships = membershipRepository.findByGroupId(groupId);
             
@@ -190,17 +211,27 @@ public class GroupService {
                 return new java.util.ArrayList<>();
             }
             
-            List<Long> userIds = memberships.stream()
-                    .map(Membership::getUserId)
-                    .filter(id -> id != null)
-                    .collect(Collectors.toList());
+            // Create a map of userId -> role
+            java.util.Map<Long, String> userRoleMap = memberships.stream()
+                    .collect(Collectors.toMap(
+                            Membership::getUserId,
+                            m -> m.getRole().toString(),
+                            (existing, replacement) -> existing
+                    ));
+            
+            List<Long> userIds = new java.util.ArrayList<>(userRoleMap.keySet());
 
             if (userIds.isEmpty()) {
                 return new java.util.ArrayList<>();
             }
 
             return userRepository.findAllById(userIds).stream()
-                    .map(user -> new UserDTO(user.getUserId(), user.getEmail(), user.getName()))
+                    .map(user -> new sk.ikts.server.dto.MemberDTO(
+                            user.getUserId(),
+                            user.getEmail(),
+                            user.getName(),
+                            userRoleMap.get(user.getUserId())
+                    ))
                     .collect(Collectors.toList());
         } catch (Exception e) {
             System.err.println("Error in getGroupMembers: " + e.getMessage());
@@ -239,6 +270,9 @@ public class GroupService {
             Membership membership = new Membership(userId, groupId, Membership.Role.MEMBER);
             membershipRepository.save(membership);
 
+            // Log activity
+            activityLogService.logActivity(userId, "JOIN_GROUP", "Joined group ID: " + groupId);
+
             System.out.println("User " + userId + " joined group " + groupId);
             return true;
         } catch (Exception e) {
@@ -271,10 +305,65 @@ public class GroupService {
             }
 
             membershipRepository.delete(membershipOpt.get());
+            
+            // Log activity
+            activityLogService.logActivity(userId, "LEAVE_GROUP", "Left group ID: " + groupId);
+            
             System.out.println("User " + userId + " left group " + groupId);
             return true;
         } catch (Exception e) {
             System.err.println("Error in leaveGroup: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Remove a member from a group (admin only)
+     * @param groupId group ID
+     * @param userId user ID to remove
+     * @param adminUserId admin user ID who is performing the removal
+     * @return true if removed successfully, false if not authorized or user is owner
+     */
+    public boolean removeMember(Long groupId, Long userId, Long adminUserId) {
+        try {
+            // Check if group exists
+            if (!groupRepository.existsById(groupId)) {
+                System.err.println("Group not found: " + groupId);
+                return false;
+            }
+
+            // Check if admin is a member and has ADMIN role
+            Optional<Membership> adminMembershipOpt = membershipRepository.findByUserIdAndGroupId(adminUserId, groupId);
+            if (adminMembershipOpt.isEmpty() || adminMembershipOpt.get().getRole() != Membership.Role.ADMIN) {
+                System.err.println("User " + adminUserId + " is not an admin of group " + groupId);
+                return false;
+            }
+
+            // Check if user to remove is the owner
+            Optional<Group> groupOpt = groupRepository.findById(groupId);
+            if (groupOpt.isPresent() && groupOpt.get().getCreatedBy().equals(userId)) {
+                System.err.println("Cannot remove group owner");
+                return false;
+            }
+
+            // Check if membership exists
+            Optional<Membership> membershipOpt = membershipRepository.findByUserIdAndGroupId(userId, groupId);
+            if (membershipOpt.isEmpty()) {
+                System.err.println("User " + userId + " is not a member of group " + groupId);
+                return false;
+            }
+
+            membershipRepository.delete(membershipOpt.get());
+            
+            // Log activity
+            activityLogService.logActivity(adminUserId, "REMOVE_MEMBER", 
+                    "Removed user " + userId + " from group " + groupId);
+            
+            System.out.println("User " + userId + " removed from group " + groupId + " by admin " + adminUserId);
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error in removeMember: " + e.getMessage());
             e.printStackTrace();
             return false;
         }

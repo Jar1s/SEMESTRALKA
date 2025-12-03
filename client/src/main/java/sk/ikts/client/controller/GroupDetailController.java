@@ -74,7 +74,12 @@ public class GroupDetailController implements Initializable {
     @FXML private Button shareUrlButton;
     
     // Members
-    @FXML private ListView<String> membersList;
+    @FXML private TableView<Map<String, Object>> membersTable;
+    @FXML private TableColumn<Map<String, Object>, String> memberNameColumn;
+    @FXML private TableColumn<Map<String, Object>, String> memberRoleColumn;
+    @FXML private TableColumn<Map<String, Object>, String> memberActionsColumn;
+    
+    private ObservableList<Map<String, Object>> membersList = FXCollections.observableArrayList();
     
     // Chat
     @FXML private VBox chatMessagesBox;
@@ -139,6 +144,9 @@ public class GroupDetailController implements Initializable {
         if (chatMessageField != null) {
             chatMessageField.setOnAction(e -> handleSendMessage());
         }
+        
+        // Setup members table
+        setupMembersTable();
     }
 
     private void setupTables() {
@@ -297,7 +305,22 @@ public class GroupDetailController implements Initializable {
             resourceTitleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
         }
         if (resourceTypeColumn != null) {
-            resourceTypeColumn.setCellValueFactory(new PropertyValueFactory<>("type"));
+            resourceTypeColumn.setCellFactory(column -> new TableCell<Resource, String>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || getTableRow().getItem() == null) {
+                        setText(null);
+                    } else {
+                        Resource resource = getTableRow().getItem();
+                        if (resource.getType() != null) {
+                            setText(resource.getType().toString());
+                        } else {
+                            setText("N/A");
+                        }
+                    }
+                }
+            });
         }
         if (resourceUploadedColumn != null) {
             resourceUploadedColumn.setCellFactory(column -> new TableCell<Resource, String>() {
@@ -570,22 +593,137 @@ public class GroupDetailController implements Initializable {
         CompletableFuture.runAsync(() -> {
             try {
                 String response = ApiClient.get("/resources/group/" + group.getGroupId());
+                System.out.println("Resources response: " + response);
                 Type listType = new TypeToken<List<Resource>>(){}.getType();
                 List<Resource> resources = gson.fromJson(response, listType);
                 Platform.runLater(() -> {
                     resourcesList.clear();
                     if (resources != null) {
+                        System.out.println("Loaded " + resources.size() + " resources");
                         resourcesList.addAll(resources);
+                    } else {
+                        System.out.println("Resources list is null");
                     }
                 });
             } catch (Exception e) {
+                System.err.println("Error loading resources: " + e.getMessage());
                 e.printStackTrace();
+                Platform.runLater(() -> {
+                    resourcesList.clear();
+                });
+            }
+        });
+    }
+
+    private void setupMembersTable() {
+        if (membersTable == null) return;
+        
+        if (memberNameColumn != null) {
+            memberNameColumn.setCellValueFactory(data -> {
+                Map<String, Object> member = data.getValue();
+                String name = (String) member.get("name");
+                return new javafx.beans.property.SimpleStringProperty(name != null ? name : "Unknown");
+            });
+        }
+        
+        if (memberRoleColumn != null) {
+            memberRoleColumn.setCellValueFactory(data -> {
+                Map<String, Object> member = data.getValue();
+                String role = (String) member.get("role");
+                return new javafx.beans.property.SimpleStringProperty(role != null ? role : "MEMBER");
+            });
+        }
+        
+        if (memberActionsColumn != null) {
+            memberActionsColumn.setCellFactory(column -> new TableCell<Map<String, Object>, String>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || getTableRow().getItem() == null) {
+                        setGraphic(null);
+                    } else {
+                        Map<String, Object> member = getTableRow().getItem();
+                        Long memberUserId = member.get("userId") instanceof Number ? 
+                            ((Number) member.get("userId")).longValue() : null;
+                        String memberRole = (String) member.get("role");
+                        
+                        HBox hbox = new HBox(5);
+                        
+                        // Check if current user is admin and member is not owner
+                        boolean isCurrentUserAdmin = isCurrentUserAdmin();
+                        boolean isMemberOwner = group != null && group.getCreatedBy() != null && 
+                                              memberUserId != null && group.getCreatedBy().equals(memberUserId);
+                        boolean canRemove = isCurrentUserAdmin && !isMemberOwner && 
+                                         memberUserId != null && !memberUserId.equals(userId);
+                        
+                        if (canRemove) {
+                            Button removeButton = new Button("Remove");
+                            removeButton.setStyle("-fx-background-color: #dc3545; -fx-text-fill: white;");
+                            removeButton.setOnAction(e -> removeMember(memberUserId));
+                            hbox.getChildren().add(removeButton);
+                        }
+                        
+                        setGraphic(hbox);
+                    }
+                }
+            });
+        }
+        
+        if (membersTable != null) {
+            membersTable.setItems(membersList);
+        }
+    }
+    
+    private boolean isCurrentUserAdmin() {
+        if (userId == null || group == null) return false;
+        
+        // Check if current user is admin by checking members list
+        for (Map<String, Object> member : membersList) {
+            Long memberUserId = member.get("userId") instanceof Number ? 
+                ((Number) member.get("userId")).longValue() : null;
+            String role = (String) member.get("role");
+            if (memberUserId != null && memberUserId.equals(userId) && "ADMIN".equals(role)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private void removeMember(Long memberUserId) {
+        if (userId == null || group == null || memberUserId == null) return;
+        
+        Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmAlert.setTitle("Remove Member");
+        confirmAlert.setHeaderText("Remove member from group?");
+        confirmAlert.setContentText("Are you sure you want to remove this member from the group?");
+        
+        confirmAlert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        Map<String, Long> request = new HashMap<>();
+                        request.put("adminUserId", userId);
+                        
+                        String url = "/groups/" + group.getGroupId() + "/members/" + memberUserId;
+                        ApiClient.delete(url, request);
+                        
+                        Platform.runLater(() -> {
+                            loadMembers();
+                            NotificationManager.showSuccess("Member removed successfully");
+                        });
+                    } catch (Exception e) {
+                        Platform.runLater(() -> {
+                            NotificationManager.showError("Failed to remove member: " + e.getMessage());
+                        });
+                        e.printStackTrace();
+                    }
+                });
             }
         });
     }
 
     private void loadMembers() {
-        if (group == null || membersList == null) return;
+        if (group == null || membersTable == null) return;
         
         CompletableFuture.runAsync(() -> {
             try {
@@ -594,23 +732,24 @@ public class GroupDetailController implements Initializable {
                 List<Map<String, Object>> members = gson.fromJson(response, listType);
                 
                 Platform.runLater(() -> {
+                    membersList.clear();
                     if (members != null && !members.isEmpty()) {
-                        List<String> memberNames = members.stream()
-                                .map(member -> {
-                                    String name = (String) member.get("name");
-                                    return name != null ? name : "Unknown";
-                                })
-                                .collect(java.util.stream.Collectors.toList());
-                        membersList.setItems(FXCollections.observableArrayList(memberNames));
-                    } else {
-                        membersList.setItems(FXCollections.observableArrayList());
+                        for (Map<String, Object> member : members) {
+                            // Convert userId from Number to Long if needed
+                            if (member.get("userId") instanceof Number) {
+                                Long userIdValue = ((Number) member.get("userId")).longValue();
+                                member.put("userId", userIdValue);
+                            }
+                            membersList.add(member);
+                        }
+                        setupMembersTable();
                     }
                 });
             } catch (Exception e) {
                 System.err.println("Error loading members: " + e.getMessage());
                 e.printStackTrace();
                 Platform.runLater(() -> {
-                    membersList.setItems(FXCollections.observableArrayList());
+                    membersList.clear();
                 });
             }
         });

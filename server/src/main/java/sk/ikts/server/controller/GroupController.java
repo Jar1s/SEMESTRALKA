@@ -134,9 +134,9 @@ public class GroupController {
      * GET /api/groups/{groupId}/members
      */
     @GetMapping("/{groupId}/members")
-    public ResponseEntity<List<UserDTO>> getGroupMembers(@PathVariable("groupId") Long groupId) {
+    public ResponseEntity<List<sk.ikts.server.dto.MemberDTO>> getGroupMembers(@PathVariable("groupId") Long groupId) {
         try {
-            List<UserDTO> members = groupService.getGroupMembers(groupId);
+            List<sk.ikts.server.dto.MemberDTO> members = groupService.getGroupMembers(groupId);
             return ResponseEntity.ok(members);
         } catch (Exception e) {
             System.err.println("Error in getGroupMembers controller: " + e.getMessage());
@@ -220,6 +220,37 @@ public class GroupController {
             System.err.println("Error in getGroupOwner controller: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Remove a member from a group (admin only)
+     * DELETE /api/groups/{groupId}/members/{userId}
+     * Request body: { "adminUserId": <adminUserId> }
+     */
+    @DeleteMapping("/{groupId}/members/{userId}")
+    public ResponseEntity<?> removeMember(@PathVariable("groupId") Long groupId, 
+                                         @PathVariable("userId") Long userId,
+                                         @RequestBody Map<String, Long> request) {
+        try {
+            Long adminUserId = request.get("adminUserId");
+            if (adminUserId == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("adminUserId is required");
+            }
+
+            boolean removed = groupService.removeMember(groupId, userId, adminUserId);
+            if (removed) {
+                return ResponseEntity.ok().body("Member removed successfully");
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Failed to remove member. Only admins can remove members, and owner cannot be removed.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error in removeMember controller: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error removing member: " + e.getMessage());
         }
     }
 }

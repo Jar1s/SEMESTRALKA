@@ -113,7 +113,13 @@
                             <Label text="Group Members" 
                                    styleClass="section-label"/>
                             
-                            <ListView fx:id="membersList" prefHeight="400" styleClass="list-view"/>
+                            <TableView fx:id="membersTable" prefHeight="400">
+                                <columns>
+                                    <TableColumn fx:id="memberNameColumn" text="Name" prefWidth="200"/>
+                                    <TableColumn fx:id="memberRoleColumn" text="Role" prefWidth="100"/>
+                                    <TableColumn fx:id="memberActionsColumn" text="Actions" prefWidth="150"/>
+                                </columns>
+                            </TableView>
                         </children>
                     </VBox>
                 </Tab>
